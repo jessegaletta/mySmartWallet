@@ -1,5 +1,6 @@
 package edu.epicode.mysmartwallet.model;
 
+import edu.epicode.mysmartwallet.service.observer.BalanceObserver;
 import edu.epicode.mysmartwallet.util.AppLogger;
 import edu.epicode.mysmartwallet.util.MoneyUtil;
 
@@ -23,6 +24,7 @@ public class Account extends BaseEntity {
     private final int currencyId;
     private final BigDecimal initialBalance;
     private final List<Transaction> transactions;
+    private final List<BalanceObserver> observers;
 
     /**
      * Crea un nuovo conto.
@@ -38,17 +40,67 @@ public class Account extends BaseEntity {
         this.currencyId = currencyId;
         this.initialBalance = initialBalance;
         this.transactions = new ArrayList<>();
+        this.observers = new ArrayList<>();
         logger.fine("Creato conto: " + name + " con saldo iniziale " + initialBalance);
     }
 
     /**
-     * Aggiunge una transazione al conto.
+     * Aggiunge una transazione al conto e notifica gli observer.
      *
      * @param transaction la transazione da aggiungere
      */
     public void addTransaction(Transaction transaction) {
+        BigDecimal oldBalance = getBalance();
         transactions.add(transaction);
+        BigDecimal newBalance = getBalance();
+
         logger.fine("Aggiunta transazione " + transaction.getId() + " al conto " + name);
+
+        notifyTransactionAdded(transaction);
+        notifyBalanceChanged(oldBalance, newBalance);
+    }
+
+    /**
+     * Registra un observer per le notifiche di variazione saldo.
+     *
+     * @param observer l'observer da registrare
+     */
+    public void addObserver(BalanceObserver observer) {
+        observers.add(observer);
+        logger.fine("Observer aggiunto al conto " + name);
+    }
+
+    /**
+     * Rimuove un observer registrato.
+     *
+     * @param observer l'observer da rimuovere
+     */
+    public void removeObserver(BalanceObserver observer) {
+        observers.remove(observer);
+        logger.fine("Observer rimosso dal conto " + name);
+    }
+
+    /**
+     * Notifica tutti gli observer del cambiamento di saldo.
+     *
+     * @param oldBalance il saldo precedente
+     * @param newBalance il nuovo saldo
+     */
+    private void notifyBalanceChanged(BigDecimal oldBalance, BigDecimal newBalance) {
+        for (BalanceObserver observer : observers) {
+            observer.onBalanceChanged(this, oldBalance, newBalance);
+        }
+    }
+
+    /**
+     * Notifica tutti gli observer dell'aggiunta di una transazione.
+     *
+     * @param transaction la transazione aggiunta
+     */
+    private void notifyTransactionAdded(Transaction transaction) {
+        for (BalanceObserver observer : observers) {
+            observer.onTransactionAdded(this, transaction);
+        }
     }
 
     /**
