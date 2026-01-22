@@ -1,0 +1,11 @@
+ID;AccountID;Type;Date;Amount;Description;CategoryID
+1;1;INCOME;2026-01-03;2500.00;Stipendio mensile;20
+2;1;INCOME;2026-01-13;150.00;Rimborso spese aziendali;21
+3;1;EXPENSE;2025-12-31;700.00;Affitto appartamento;120
+4;1;EXPENSE;2026-01-08;85.50;Spesa settimanale Esselunga;101
+5;1;EXPENSE;2026-01-10;65.00;Bolletta Enel luce;121
+6;3;EXPENSE;2026-01-16;45.00;Cena pizzeria con amici;100
+7;3;EXPENSE;2026-01-18;60.00;Rifornimento benzina;11
+8;1;EXPENSE;2026-01-21;62.30;Spesa supermercato Conad;101
+9;2;EXPENSE;2026-01-23;35.99;Amazon - Libro programmazione Java;100
+10;3;EXPENSE;2026-01-26;15.00;Pranzo in pausa lavoro;100
