@@ -37,3 +37,7 @@ tasks.withType(Javadoc).configureEach {
 test {
     useJUnitPlatform()
 }
+
+run {
+    standardInput = System.in
+}
