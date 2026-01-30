@@ -805,9 +805,23 @@ public class Main {
         String parentInput = readString("ID Parent (vuoto per radice)");
 
         Integer parentId = null;
+        CategoryComponent parentCategory = null;
+
         if (!parentInput.trim().isEmpty()) {
             try {
-                parentId = Integer.parseInt(parentInput.trim());
+                int inputId = Integer.parseInt(parentInput.trim());
+                Optional<CategoryComponent> parentOpt = DataStorage.getInstance()
+                        .getCategoryRepository().findById(inputId);
+
+                if (parentOpt.isEmpty()) {
+                    System.out.println("Categoria parent non trovata, categoria creata come radice.");
+                } else if (parentOpt.get().isLeaf()) {
+                    System.out.println("La categoria selezionata e' una foglia e non puo' avere figli.");
+                    System.out.println("Categoria creata come radice.");
+                } else {
+                    parentId = inputId;
+                    parentCategory = parentOpt.get();
+                }
             } catch (NumberFormatException e) {
                 System.out.println("ID non valido, categoria creata come radice.");
             }
@@ -825,13 +839,8 @@ public class Main {
 
         DataStorage.getInstance().getCategoryRepository().save(newCategory);
 
-        if (parentId != null) {
-            DataStorage.getInstance().getCategoryRepository().findById(parentId)
-                    .ifPresent(parent -> {
-                        if (parent instanceof MacroCategory) {
-                            ((MacroCategory) parent).addChild(newCategory);
-                        }
-                    });
+        if (parentCategory != null) {
+            ((MacroCategory) parentCategory).addChild(newCategory);
         }
 
         System.out.println("\nCategoria '" + name + "' creata con ID: " + newId);

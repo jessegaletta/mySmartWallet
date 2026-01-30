@@ -47,10 +47,15 @@ public class InMemoryRepository<T extends BaseEntity> implements Repository<T> {
 
     /**
      * {@inheritDoc}
+     * Aggiorna automaticamente il contatore degli ID per evitare collisioni
+     * quando vengono caricate entità con ID già assegnati (es. da file CSV).
      */
     @Override
     public void save(T entity) {
         storage.put(entity.getId(), entity);
+        // Aggiorna il contatore per evitare collisioni con ID già esistenti
+        int entityId = entity.getId();
+        idCounter.updateAndGet(current -> Math.max(current, entityId + 1));
         logger.fine("Entità salvata con ID: " + entity.getId());
     }
 
