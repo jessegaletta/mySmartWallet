@@ -134,6 +134,34 @@ public class CurrencyManager {
     }
 
     /**
+     * Elimina una valuta dal repository.
+     *
+     * @param currencyId l'ID della valuta da eliminare
+     * @throws ItemNotFoundException se la valuta non esiste
+     * @throws IllegalStateException se si tenta di eliminare la valuta base EUR
+     */
+    public void deleteCurrency(int currencyId) throws ItemNotFoundException {
+        Currency currency = currencyRepository.findById(currencyId)
+                .orElseThrow(() -> new ItemNotFoundException("Valuta con ID " + currencyId + " non trovata"));
+
+        if (currency.getCode().equals(BASE_CURRENCY_CODE)) {
+            throw new IllegalStateException("Impossibile eliminare la valuta base EUR");
+        }
+
+        currencyRepository.delete(currencyId);
+        logger.info("Valuta eliminata: " + currency.getCode());
+    }
+
+    /**
+     * Genera il prossimo ID disponibile per una nuova valuta.
+     *
+     * @return il prossimo ID univoco
+     */
+    public int generateNextId() {
+        return currencyRepository.generateNextId();
+    }
+
+    /**
      * Aggiorna il tasso di cambio di una valuta per una data specifica.
      *
      * @param currencyCode il codice della valuta

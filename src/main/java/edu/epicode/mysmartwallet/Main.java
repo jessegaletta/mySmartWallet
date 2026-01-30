@@ -152,27 +152,21 @@ public class Main {
                 int choice = readInt("Scelta");
                 switch (choice) {
                     case 1:
-                        handleDashboard();
+                        handleTransactionMenu();
                         break;
                     case 2:
-                        handleNewTransaction();
+                        handleAccountMenu();
                         break;
                     case 3:
-                        handleTransfer();
-                        break;
-                    case 4:
-                        handleReports();
-                        break;
-                    case 5:
                         handleCategories();
                         break;
-                    case 6:
+                    case 4:
                         handleCurrencies();
                         break;
-                    case 7:
+                    case 5:
                         handleSave();
                         break;
-                    case 8:
+                    case 6:
                         handleExit();
                         break;
                     default:
@@ -194,18 +188,16 @@ public class Main {
      * Stampa il menu principale.
      */
     private static void printMainMenu() {
-        System.out.println("\n+======================================+");
-        System.out.println("|         MENU PRINCIPALE              |");
-        System.out.println("+======================================+");
-        System.out.println("| 1. Dashboard                         |");
-        System.out.println("| 2. Nuova Transazione                 |");
-        System.out.println("| 3. Trasferimento                     |");
-        System.out.println("| 4. Report                            |");
-        System.out.println("| 5. Gestione Categorie                |");
-        System.out.println("| 6. Gestione Valute                   |");
-        System.out.println("| 7. Salva Dati                        |");
-        System.out.println("| 8. Esci                              |");
-        System.out.println("+======================================+");
+        System.out.println("\n+=============================+");
+        System.out.println("|       MENU PRINCIPALE       |");
+        System.out.println("+=============================+");
+        System.out.println("| 1. Transazioni              |");
+        System.out.println("| 2. Conti                    |");
+        System.out.println("| 3. Categorie                |");
+        System.out.println("| 4. Valute                   |");
+        System.out.println("| 5. Salva                    |");
+        System.out.println("| 6. Esci                     |");
+        System.out.println("+=============================+");
     }
 
     // ==================== DASHBOARD ====================
@@ -248,6 +240,279 @@ public class Main {
         }
     }
 
+    // ==================== GESTIONE CONTI ====================
+
+    /**
+     * Gestisce il sottomenu dei conti.
+     */
+    private static void handleAccountMenu() throws WalletException {
+        System.out.println("\n+--- GESTIONE CONTI ---+");
+        System.out.println("| 1. Visualizza saldi  |");
+        System.out.println("| 2. Crea conto        |");
+        System.out.println("| 3. Elimina conto     |");
+        System.out.println("| 4. Indietro          |");
+        System.out.println("+----------------------+");
+
+        int choice = readInt("Scelta");
+
+        switch (choice) {
+            case 1:
+                handleDashboard();
+                break;
+            case 2:
+                handleCreateAccount();
+                break;
+            case 3:
+                handleDeleteAccount();
+                break;
+            case 4:
+                break;
+            default:
+                System.out.println("Scelta non valida.");
+        }
+    }
+
+    /**
+     * Gestisce la creazione di un nuovo conto.
+     */
+    private static void handleCreateAccount() throws WalletException {
+        System.out.println("\n+--- NUOVO CONTO ---+");
+
+        String name = readString("Nome del conto");
+        if (name.isEmpty()) {
+            System.out.println("Il nome non puo' essere vuoto.");
+            return;
+        }
+
+        // Selezione valuta
+        System.out.println("\nSeleziona la valuta:");
+        List<Currency> currencies = currencyManager.getAllCurrencies();
+        for (int i = 0; i < currencies.size(); i++) {
+            Currency c = currencies.get(i);
+            System.out.printf("  [%d] %s (%s) %s%n", i + 1, c.getCode(), c.getName(), c.getSymbol());
+        }
+
+        int currencyChoice = readInt("Valuta (1-" + currencies.size() + ")");
+        if (currencyChoice < 1 || currencyChoice > currencies.size()) {
+            System.out.println("Scelta non valida.");
+            return;
+        }
+        Currency selectedCurrency = currencies.get(currencyChoice - 1);
+
+        BigDecimal initialBalance = readAmount("Saldo iniziale (" + selectedCurrency.getSymbol() + ")");
+
+        Account newAccount = walletService.createAccount(name, selectedCurrency.getCode(), initialBalance);
+        System.out.printf("%nConto '%s' creato con successo! (ID: %d)%n", newAccount.getName(), newAccount.getId());
+    }
+
+    /**
+     * Gestisce l'eliminazione di un conto.
+     * Verifica che il conto non abbia transazioni associate prima di eliminarlo.
+     */
+    private static void handleDeleteAccount() throws WalletException {
+        System.out.println("\n+--- ELIMINA CONTO ---+");
+
+        List<Account> accounts = walletService.getAllAccounts();
+        if (accounts.isEmpty()) {
+            System.out.println("Nessun conto disponibile.");
+            return;
+        }
+
+        // Mostra i conti disponibili
+        System.out.println("\nConti disponibili:");
+        System.out.println("--------------------------------------");
+        for (Account account : accounts) {
+            Currency currency = getCurrencyForAccount(account);
+            String symbol = currency != null ? currency.getSymbol() : "";
+            int transactionCount = account.getTransactions().size();
+            System.out.printf("  [%d] %-15s - Saldo: %s %s - Transazioni: %d%n",
+                    account.getId(), account.getName(),
+                    MoneyUtil.format(account.getBalance(), ""), symbol, transactionCount);
+        }
+        System.out.println("--------------------------------------");
+
+        int accountId = readInt("ID conto da eliminare (0 per annullare)");
+        if (accountId == 0) {
+            System.out.println("Operazione annullata.");
+            return;
+        }
+
+        // Recupera il conto
+        Account account;
+        try {
+            account = walletService.getAccount(accountId);
+        } catch (WalletException e) {
+            System.out.println("Conto non trovato.");
+            return;
+        }
+
+        // Verifica se ha transazioni
+        int transactionCount = account.getTransactions().size();
+        if (transactionCount > 0) {
+            System.out.printf("%nImpossibile eliminare: il conto '%s' ha %d transazioni associate.%n",
+                    account.getName(), transactionCount);
+            System.out.println("Elimina prima tutte le transazioni del conto.");
+            return;
+        }
+
+        // Mostra dettagli e chiedi conferma
+        Currency currency = getCurrencyForAccount(account);
+        String symbol = currency != null ? currency.getSymbol() : "";
+
+        System.out.println("\n--- Dettagli conto ---");
+        System.out.printf("ID:             %d%n", account.getId());
+        System.out.printf("Nome:           %s%n", account.getName());
+        System.out.printf("Valuta:         %s%n", currency != null ? currency.getCode() : "N/D");
+        System.out.printf("Saldo iniziale: %s %s%n", MoneyUtil.format(account.getInitialBalance(), ""), symbol);
+
+        if (!readYesNo("\nConfermi l'eliminazione? (s/n)")) {
+            System.out.println("Operazione annullata.");
+            return;
+        }
+
+        // Elimina il conto
+        DataStorage.getInstance().getAccountRepository().delete(accountId);
+        System.out.printf("%nConto '%s' eliminato con successo!%n", account.getName());
+    }
+
+    // ==================== GESTIONE TRANSAZIONI ====================
+
+    /**
+     * Gestisce il sottomenu delle transazioni.
+     */
+    private static void handleTransactionMenu() throws WalletException {
+        System.out.println("\n+--- GESTIONE TRANSAZIONI ---+");
+        System.out.println("| 1. Inserisci transazione   |");
+        System.out.println("| 2. Cancella transazione    |");
+        System.out.println("| 3. Report                  |");
+        System.out.println("| 4. Indietro                |");
+        System.out.println("+----------------------------+");
+
+        int choice = readInt("Scelta");
+
+        switch (choice) {
+            case 1:
+                handleNewTransaction();
+                break;
+            case 2:
+                handleDeleteTransaction();
+                break;
+            case 3:
+                handleReports();
+                break;
+            case 4:
+                break;
+            default:
+                System.out.println("Scelta non valida.");
+        }
+    }
+
+    /**
+     * Gestisce la cancellazione di una transazione.
+     * Chiede l'ID, mostra i dettagli per conferma, poi elimina la transazione
+     * aggiornando automaticamente il saldo del conto.
+     */
+    private static void handleDeleteTransaction() throws WalletException {
+        System.out.println("\n+--- CANCELLA TRANSAZIONE ---+");
+
+        List<Account> accounts = walletService.getAllAccounts();
+        if (accounts.isEmpty()) {
+            System.out.println("Nessun conto disponibile.");
+            return;
+        }
+
+        // Mostra tutte le transazioni recenti per aiutare l'utente
+        System.out.println("\nTransazioni recenti:");
+        System.out.println("--------------------------------------");
+
+        boolean hasTransactions = false;
+        for (Account account : accounts) {
+            List<Transaction> transactions = account.getTransactions();
+            if (!transactions.isEmpty()) {
+                hasTransactions = true;
+                Currency currency = getCurrencyForAccount(account);
+                String symbol = currency != null ? currency.getSymbol() : "";
+                System.out.println("\n" + account.getName() + " (" + symbol + "):");
+
+                // Mostra le ultime 5 transazioni per conto
+                int start = Math.max(0, transactions.size() - 5);
+                for (int i = start; i < transactions.size(); i++) {
+                    Transaction t = transactions.get(i);
+                    System.out.printf("  [%d] %s | %-10s | %10s | %s%n",
+                            t.getId(),
+                            t.getDate().format(DATE_FORMAT),
+                            t.getType().getDescription(),
+                            MoneyUtil.format(t.getAmount(), ""),
+                            t.getDescription());
+                }
+            }
+        }
+
+        if (!hasTransactions) {
+            System.out.println("Nessuna transazione presente.");
+            return;
+        }
+
+        System.out.println("--------------------------------------");
+
+        int transactionId = readInt("ID transazione da eliminare (0 per annullare)");
+        if (transactionId == 0) {
+            System.out.println("Operazione annullata.");
+            return;
+        }
+
+        // Recupera la transazione
+        Transaction transaction;
+        try {
+            transaction = walletService.getTransaction(transactionId);
+        } catch (WalletException e) {
+            System.out.println("Transazione non trovata.");
+            return;
+        }
+
+        // Recupera il conto associato
+        Account account = walletService.getAccount(transaction.getAccountId());
+        Currency currency = getCurrencyForAccount(account);
+        String symbol = currency != null ? currency.getSymbol() : "";
+
+        // Mostra i dettagli della transazione
+        System.out.println("\n--- Dettagli transazione ---");
+        System.out.printf("ID:          %d%n", transaction.getId());
+        System.out.printf("Conto:       %s%n", account.getName());
+        System.out.printf("Tipo:        %s%n", transaction.getType().getDescription());
+        System.out.printf("Data:        %s%n", transaction.getDate().format(DATE_FORMAT));
+        System.out.printf("Importo:     %s %s%n", MoneyUtil.format(transaction.getAmount(), ""), symbol);
+        System.out.printf("Descrizione: %s%n", transaction.getDescription());
+
+        // Mostra il saldo attuale e quello previsto dopo la cancellazione
+        BigDecimal currentBalance = account.getBalance();
+        BigDecimal balanceChange;
+        if (transaction.getType() == TransactionType.INCOME) {
+            balanceChange = transaction.getAmount().negate();
+        } else {
+            balanceChange = transaction.getAmount();
+        }
+        BigDecimal expectedBalance = MoneyUtil.add(currentBalance, balanceChange);
+
+        System.out.println("\n--- Impatto sul saldo ---");
+        System.out.printf("Saldo attuale:         %s %s%n", MoneyUtil.format(currentBalance, ""), symbol);
+        System.out.printf("Saldo dopo eliminazione: %s %s%n", MoneyUtil.format(expectedBalance, ""), symbol);
+
+        // Chiedi conferma
+        if (!readYesNo("\nConfermi l'eliminazione? (s/n)")) {
+            System.out.println("Operazione annullata.");
+            return;
+        }
+
+        // Esegui la cancellazione
+        walletService.deleteTransaction(transactionId);
+        System.out.println("\nTransazione eliminata con successo!");
+        System.out.printf("Nuovo saldo del conto '%s': %s %s%n",
+                account.getName(),
+                MoneyUtil.format(walletService.getAccount(account.getId()).getBalance(), ""),
+                symbol);
+    }
+
     // ==================== NUOVA TRANSAZIONE ====================
 
     /**
@@ -257,12 +522,18 @@ public class Main {
         System.out.println("\n+--- NUOVA TRANSAZIONE ---+");
         System.out.println("| 1. Entrata              |");
         System.out.println("| 2. Uscita               |");
-        System.out.println("| 3. Indietro             |");
+        System.out.println("| 3. Trasferimento        |");
+        System.out.println("| 4. Indietro             |");
         System.out.println("+-------------------------+");
 
         int choice = readInt("Scelta");
 
+        if (choice == 4) {
+            return;
+        }
+
         if (choice == 3) {
+            handleTransfer();
             return;
         }
 
@@ -758,7 +1029,8 @@ public class Main {
         System.out.println("\n+--- GESTIONE CATEGORIE ---+");
         System.out.println("| 1. Visualizza albero     |");
         System.out.println("| 2. Aggiungi categoria    |");
-        System.out.println("| 3. Indietro              |");
+        System.out.println("| 3. Elimina categoria     |");
+        System.out.println("| 4. Indietro              |");
         System.out.println("+--------------------------+");
 
         int choice = readInt("Scelta");
@@ -771,6 +1043,9 @@ public class Main {
                 addCategory();
                 break;
             case 3:
+                deleteCategory();
+                break;
+            case 4:
                 break;
             default:
                 System.out.println("Scelta non valida.");
@@ -846,6 +1121,77 @@ public class Main {
         System.out.println("\nCategoria '" + name + "' creata con ID: " + newId);
     }
 
+    /**
+     * Gestisce l'eliminazione di una categoria.
+     * Verifica che la categoria non abbia figli e non sia usata in transazioni.
+     */
+    private static void deleteCategory() throws WalletException {
+        System.out.println("\nElimina categoria:");
+        showCategoryTree();
+
+        int categoryId = readInt("ID categoria da eliminare (0 per annullare)");
+
+        if (categoryId == 0) {
+            System.out.println("Operazione annullata.");
+            return;
+        }
+
+        DataStorage storage = DataStorage.getInstance();
+        Optional<CategoryComponent> categoryOpt = storage.getCategoryRepository().findById(categoryId);
+
+        if (categoryOpt.isEmpty()) {
+            System.out.println("Categoria non trovata.");
+            return;
+        }
+
+        CategoryComponent category = categoryOpt.get();
+
+        // Verifica se ha figli (solo per MacroCategory)
+        if (category instanceof MacroCategory) {
+            MacroCategory macro = (MacroCategory) category;
+            if (!macro.getChildren().isEmpty()) {
+                System.out.println("Impossibile eliminare: la categoria ha " +
+                        macro.getChildren().size() + " sottocategorie collegate.");
+                System.out.println("Elimina prima le sottocategorie.");
+                return;
+            }
+        }
+
+        // Verifica se ci sono transazioni che usano questa categoria
+        long transactionCount = storage.getTransactionRepository().findAll().stream()
+                .filter(t -> t.getCategoryId() == categoryId)
+                .count();
+
+        if (transactionCount > 0) {
+            System.out.println("Impossibile eliminare: la categoria e' usata in " +
+                    transactionCount + " transazioni.");
+            return;
+        }
+
+        // Conferma eliminazione
+        System.out.println("\nStai per eliminare la categoria: " + category.getName());
+        if (!readYesNo("Confermi l'eliminazione? (s/n)")) {
+            System.out.println("Operazione annullata.");
+            return;
+        }
+
+        // Rimuovi dal parent se presente
+        Integer parentId = category.getParentId();
+        if (parentId != null) {
+            storage.getCategoryRepository().findById(parentId).ifPresent(parent -> {
+                if (parent instanceof MacroCategory) {
+                    ((MacroCategory) parent).removeChild(categoryId);
+                    logger.fine("Rimosso riferimento al figlio " + categoryId + " dal parent " + parentId);
+                }
+            });
+        }
+
+        // Elimina dal repository
+        storage.getCategoryRepository().delete(categoryId);
+
+        System.out.println("\nCategoria '" + category.getName() + "' eliminata con successo.");
+    }
+
     // ==================== VALUTE ====================
 
     /**
@@ -854,8 +1200,10 @@ public class Main {
     private static void handleCurrencies() throws WalletException {
         System.out.println("\n+--- GESTIONE VALUTE ---+");
         System.out.println("| 1. Lista valute        |");
-        System.out.println("| 2. Aggiorna tasso      |");
-        System.out.println("| 3. Indietro            |");
+        System.out.println("| 2. Inserisci tasso     |");
+        System.out.println("| 3. Aggiungi valuta     |");
+        System.out.println("| 4. Elimina valuta      |");
+        System.out.println("| 5. Indietro            |");
         System.out.println("+------------------------+");
 
         int choice = readInt("Scelta");
@@ -868,6 +1216,12 @@ public class Main {
                 updateRate();
                 break;
             case 3:
+                addCurrency();
+                break;
+            case 4:
+                deleteCurrency();
+                break;
+            case 5:
                 break;
             default:
                 System.out.println("Scelta non valida.");
@@ -880,24 +1234,153 @@ public class Main {
 
         List<Currency> currencies = currencyManager.getAllCurrencies();
         for (Currency currency : currencies) {
-            System.out.printf("  [%d] %s (%s) %s - Tasso: %s%n",
+            LocalDate rateDate = currency.getLatestRateDate();
+            String dateStr = rateDate != null ? rateDate.format(DATE_FORMAT) : "N/D";
+            System.out.printf("  [%d] %s (%s) %s - Tasso: %s (dal %s)%n",
                     currency.getId(),
                     currency.getCode(),
                     currency.getName(),
                     currency.getSymbol(),
-                    currency.getLatestRate().toPlainString());
+                    currency.getLatestRate().toPlainString(),
+                    dateStr);
         }
     }
 
     private static void updateRate() throws WalletException {
-        listCurrencies();
+        System.out.println("\nValute con tasso modificabile:");
+        System.out.println("--------------------------------------");
 
-        String currencyCode = readString("Codice valuta (es: USD)");
+        List<Currency> currencies = currencyManager.getAllCurrencies();
+        List<Currency> editableCurrencies = currencies.stream()
+                .filter(c -> !c.getCode().equals("EUR"))
+                .toList();
+
+        if (editableCurrencies.isEmpty()) {
+            System.out.println("Nessuna valuta modificabile disponibile.");
+            return;
+        }
+
+        for (Currency currency : editableCurrencies) {
+            LocalDate rateDate = currency.getLatestRateDate();
+            String dateStr = rateDate != null ? rateDate.format(DATE_FORMAT) : "N/D";
+            System.out.printf("  %s (%s) %s - Tasso: %s (dal %s)%n",
+                    currency.getCode(),
+                    currency.getName(),
+                    currency.getSymbol(),
+                    currency.getLatestRate().toPlainString(),
+                    dateStr);
+        }
+
+        String currencyCode = readString("Codice valuta (es: USD)").toUpperCase();
+
+        if (currencyCode.equals("EUR")) {
+            System.out.println("Il tasso di EUR e' fisso a 1.0 (valuta base).");
+            return;
+        }
+
         BigDecimal rate = readAmount("Nuovo tasso rispetto EUR");
         LocalDate date = readDate("Data tasso (yyyy-MM-dd, invio per oggi)");
 
-        currencyManager.updateRate(currencyCode.toUpperCase(), date, rate);
+        currencyManager.updateRate(currencyCode, date, rate);
         System.out.println("\nTasso aggiornato con successo!");
+    }
+
+    /**
+     * Gestisce l'aggiunta di una nuova valuta.
+     */
+    private static void addCurrency() {
+        System.out.println("\nNuova valuta:");
+
+        String code = readString("Codice ISO (es: CHF)").toUpperCase();
+
+        // Verifica che il codice non esista già
+        try {
+            currencyManager.getCurrencyByCode(code);
+            System.out.println("Errore: una valuta con codice " + code + " esiste gia'.");
+            return;
+        } catch (WalletException e) {
+            // OK, il codice non esiste
+        }
+
+        String name = readString("Nome (es: Franco Svizzero)");
+        String symbol = readString("Simbolo (es: CHF)");
+        BigDecimal rate = readAmount("Tasso rispetto EUR");
+
+        int newId = currencyManager.generateNextId();
+        Currency newCurrency = new Currency(newId, code, name, symbol);
+        newCurrency.addRate(LocalDate.now(), rate);
+
+        currencyManager.addCurrency(newCurrency);
+        System.out.println("\nValuta '" + code + "' creata con ID: " + newId);
+    }
+
+    /**
+     * Gestisce l'eliminazione di una valuta.
+     * Verifica che non sia usata in conti o transazioni.
+     */
+    private static void deleteCurrency() throws WalletException {
+        System.out.println("\nElimina valuta:");
+        listCurrencies();
+
+        int currencyId = readInt("ID valuta da eliminare (0 per annullare)");
+
+        if (currencyId == 0) {
+            System.out.println("Operazione annullata.");
+            return;
+        }
+
+        // Verifica che la valuta esista
+        List<Currency> currencies = currencyManager.getAllCurrencies();
+        Currency currency = currencies.stream()
+                .filter(c -> c.getId() == currencyId)
+                .findFirst()
+                .orElse(null);
+
+        if (currency == null) {
+            System.out.println("Valuta non trovata.");
+            return;
+        }
+
+        // Verifica che non sia EUR
+        if (currency.getCode().equals("EUR")) {
+            System.out.println("Impossibile eliminare la valuta base EUR.");
+            return;
+        }
+
+        DataStorage storage = DataStorage.getInstance();
+
+        // Verifica se usata in qualche conto
+        long accountCount = storage.getAccountRepository().findAll().stream()
+                .filter(a -> a.getCurrencyId() == currencyId)
+                .count();
+
+        if (accountCount > 0) {
+            System.out.println("Impossibile eliminare: la valuta e' usata in " +
+                    accountCount + " conti.");
+            return;
+        }
+
+        // Verifica se usata in qualche transazione (originalCurrencyId)
+        long transactionCount = storage.getTransactionRepository().findAll().stream()
+                .filter(t -> t.getOriginalCurrencyId() != null && t.getOriginalCurrencyId() == currencyId)
+                .count();
+
+        if (transactionCount > 0) {
+            System.out.println("Impossibile eliminare: la valuta e' usata in " +
+                    transactionCount + " transazioni.");
+            return;
+        }
+
+        // Conferma eliminazione
+        System.out.println("\nStai per eliminare la valuta: " + currency.getCode() +
+                " (" + currency.getName() + ")");
+        if (!readYesNo("Confermi l'eliminazione? (s/n)")) {
+            System.out.println("Operazione annullata.");
+            return;
+        }
+
+        currencyManager.deleteCurrency(currencyId);
+        System.out.println("\nValuta '" + currency.getCode() + "' eliminata con successo.");
     }
 
     // ==================== SALVA / ESCI ====================

@@ -372,4 +372,45 @@ public class WalletService {
                         "Valuta con ID " + account.getCurrencyId() + " non trovata"))
                 .getCode();
     }
+
+    /**
+     * Recupera una transazione per ID.
+     *
+     * @param transactionId l'ID della transazione
+     * @return la transazione trovata
+     * @throws ItemNotFoundException se la transazione non esiste
+     */
+    public Transaction getTransaction(int transactionId) throws ItemNotFoundException {
+        return transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new ItemNotFoundException(
+                        "Transazione con ID " + transactionId + " non trovata"));
+    }
+
+    /**
+     * Elimina una transazione e aggiorna il saldo del conto associato.
+     * Il saldo viene ricalcolato automaticamente poiche' Account.getBalance()
+     * calcola dinamicamente il saldo dalla lista delle transazioni.
+     *
+     * @param transactionId l'ID della transazione da eliminare
+     * @throws ItemNotFoundException se la transazione o il conto non esistono
+     */
+    public void deleteTransaction(int transactionId) throws ItemNotFoundException {
+        Transaction transaction = getTransaction(transactionId);
+        Account account = getAccount(transaction.getAccountId());
+
+        // Rimuove la transazione dal conto (il saldo si ricalcola automaticamente)
+        boolean removed = account.removeTransaction(transactionId);
+        if (!removed) {
+            throw new ItemNotFoundException(
+                    "Transazione " + transactionId + " non trovata nel conto " + account.getName());
+        }
+
+        // Rimuove dal repository
+        transactionRepository.delete(transactionId);
+
+        // Salva il conto aggiornato
+        accountRepository.save(account);
+
+        logger.info("Eliminata transazione " + transactionId + " dal conto " + account.getName());
+    }
 }

@@ -84,6 +84,18 @@ public class Currency extends BaseEntity {
     }
 
     /**
+     * Restituisce la data dell'ultimo tasso di cambio disponibile.
+     *
+     * @return la data più recente, o null se non ci sono tassi
+     */
+    public LocalDate getLatestRateDate() {
+        if (rateHistory.isEmpty()) {
+            return null;
+        }
+        return rateHistory.lastKey();
+    }
+
+    /**
      * Restituisce il codice ISO della valuta.
      *
      * @return il codice valuta
