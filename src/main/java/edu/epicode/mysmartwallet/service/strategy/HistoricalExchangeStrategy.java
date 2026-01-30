@@ -61,8 +61,9 @@ public class HistoricalExchangeStrategy implements ExchangeStrategy {
         BigDecimal rateTo = to.getRateForDate(date);
 
         // Calcola la conversione: amount * (rateFrom / rateTo)
-        BigDecimal conversionRate = MoneyUtil.divide(rateFrom, rateTo);
-        BigDecimal result = MoneyUtil.multiply(amount, conversionRate);
+        // Usa metodi specifici per tassi che mantengono la precisione completa
+        BigDecimal conversionRate = MoneyUtil.divideRates(rateFrom, rateTo);
+        BigDecimal result = MoneyUtil.multiplyByRate(amount, conversionRate);
 
         logger.fine(String.format("Conversione: %s %s -> %s %s (tasso: %s)",
                 amount, from.getCode(), result, to.getCode(), conversionRate));

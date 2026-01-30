@@ -145,4 +145,54 @@ public final class MoneyUtil {
     public static boolean isGreaterThan(BigDecimal a, BigDecimal b) {
         return a.compareTo(b) > 0;
     }
+
+    // ==================== OPERAZIONI SU TASSI DI CAMBIO ====================
+
+    /**
+     * Crea un BigDecimal per un tasso di cambio da una stringa.
+     * Non applica arrotondamento per preservare la precisione originale.
+     *
+     * @param rate la stringa rappresentante il tasso
+     * @return il BigDecimal corrispondente senza arrotondamento
+     * @throws NumberFormatException se la stringa non è un numero valido
+     */
+    public static BigDecimal ofRate(String rate) {
+        return new BigDecimal(rate);
+    }
+
+    /**
+     * Crea un BigDecimal per un tasso di cambio da un valore double.
+     * Non applica arrotondamento per preservare la precisione originale.
+     *
+     * @param rate il valore double del tasso
+     * @return il BigDecimal corrispondente senza arrotondamento
+     */
+    public static BigDecimal ofRate(double rate) {
+        return BigDecimal.valueOf(rate);
+    }
+
+    /**
+     * Divide due tassi di cambio mantenendo la massima precisione.
+     * Utilizza MathContext.DECIMAL128 per evitare perdita di precisione.
+     *
+     * @param a il dividendo (tasso)
+     * @param b il divisore (tasso)
+     * @return il quoziente con precisione completa
+     * @throws ArithmeticException se il divisore è zero
+     */
+    public static BigDecimal divideRates(BigDecimal a, BigDecimal b) {
+        return a.divide(b, java.math.MathContext.DECIMAL128);
+    }
+
+    /**
+     * Moltiplica un importo monetario per un tasso di cambio.
+     * Il risultato viene arrotondato a 2 decimali perché rappresenta denaro.
+     *
+     * @param amount l'importo da convertire
+     * @param rate   il tasso di cambio
+     * @return l'importo convertito arrotondato alla scala monetaria
+     */
+    public static BigDecimal multiplyByRate(BigDecimal amount, BigDecimal rate) {
+        return amount.multiply(rate).setScale(DEFAULT_SCALE, DEFAULT_ROUNDING);
+    }
 }

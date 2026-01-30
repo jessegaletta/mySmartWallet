@@ -1,6 +1,6 @@
 ID;AccountID;Type;Date;Amount;Description;CategoryID
-1;1;INCOME;2026-01-03;2500.00;Stipendio mensile;20
-2;1;INCOME;2026-01-13;150.00;Rimborso spese aziendali;21
+1;3;INCOME;2026-01-30;50.50;prova;20
+2;3;EXPENSE;2026-01-30;0.75;prova2;11
 3;1;EXPENSE;2025-12-31;700.00;Affitto appartamento;120
 4;1;EXPENSE;2026-01-08;85.50;Spesa settimanale Esselunga;101
 5;1;EXPENSE;2026-01-10;65.00;Bolletta Enel luce;121

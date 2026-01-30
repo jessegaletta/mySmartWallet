@@ -59,10 +59,10 @@ class ExchangeStrategyTest {
         ExchangeStrategy strategy = new HistoricalExchangeStrategy();
         BigDecimal amount = MoneyUtil.of("100.00");
 
-        // EUR -> USD: 100 * (1.00 / 1.10) = 91.00 (arrotondamento scala 2)
+        // EUR -> USD: 100 * (1.00 / 1.10) = 90.91 (arrotondamento solo sul risultato finale)
         BigDecimal result = strategy.convert(amount, eur, usd, testDate);
 
-        assertEquals(MoneyUtil.of("91.00"), result);
+        assertEquals(MoneyUtil.of("90.91"), result);
     }
 
     @Test
