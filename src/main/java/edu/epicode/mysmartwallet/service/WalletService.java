@@ -155,14 +155,71 @@ public class WalletService {
     }
 
     /**
+     * Aggiunge una transazione a un conto con informazioni sulla valuta originale.
+     * Utilizzato quando la transazione viene inserita in una valuta diversa da quella del conto.
+     *
+     * @param accountId          l'ID del conto
+     * @param type               il tipo di transazione
+     * @param amount             l'importo convertito nella valuta del conto
+     * @param description        la descrizione
+     * @param categoryId         l'ID della categoria
+     * @param date               la data della transazione
+     * @param originalAmount     l'importo originale nella valuta di inserimento (null se nessuna conversione)
+     * @param originalCurrencyId l'ID della valuta originale (null se nessuna conversione)
+     * @param exchangeRate       il tasso di cambio usato (null se nessuna conversione)
+     * @throws ItemNotFoundException se il conto non esiste
+     * @throws InvalidInputException se i parametri non sono validi
+     */
+    public void addTransactionWithCurrency(int accountId, TransactionType type, BigDecimal amount,
+            String description, int categoryId, LocalDate date,
+            BigDecimal originalAmount, Integer originalCurrencyId, BigDecimal exchangeRate)
+            throws ItemNotFoundException, InvalidInputException {
+
+        Account account = getAccount(accountId);
+
+        int transactionId = transactionRepository.generateNextId();
+
+        Transaction.Builder builder = new Transaction.Builder()
+                .withId(transactionId)
+                .withAccountId(accountId)
+                .withType(type)
+                .withDate(date)
+                .withAmount(amount)
+                .withDescription(description)
+                .withCategoryId(categoryId);
+
+        // Aggiungi campi valuta se presenti
+        if (originalAmount != null) {
+            builder.withOriginalAmount(originalAmount);
+        }
+        if (originalCurrencyId != null) {
+            builder.withOriginalCurrencyId(originalCurrencyId);
+        }
+        if (exchangeRate != null) {
+            builder.withExchangeRate(exchangeRate);
+        }
+
+        Transaction transaction = builder.build();
+
+        account.addTransaction(transaction);
+        transactionRepository.save(transaction);
+        accountRepository.save(account);
+
+        logger.info("Transazione " + type + " con valuta aggiunta al conto " + accountId);
+    }
+
+    /**
      * Esegue un trasferimento tra due conti.
      *
-     * <p>Se i conti hanno valute diverse, l'importo viene convertito
-     * utilizzando la strategia di cambio configurata.</p>
+     * <p>Se i conti hanno valute diverse e toAmount e' specificato,
+     * viene usato quell'importo per il conto destinazione e il tasso
+     * viene calcolato dal rapporto toAmount/fromAmount.
+     * Se toAmount e' null, viene usata la strategia di cambio configurata.</p>
      *
      * @param fromAccountId l'ID del conto sorgente
      * @param toAccountId   l'ID del conto destinazione
-     * @param amount        l'importo da trasferire (nella valuta del conto sorgente)
+     * @param fromAmount    l'importo da trasferire (nella valuta del conto sorgente)
+     * @param toAmount      l'importo nella valuta del conto destinazione (null per conversione automatica)
      * @param description   la descrizione del trasferimento
      * @param categoryId    l'ID della categoria
      * @param date          la data del trasferimento
@@ -171,8 +228,8 @@ public class WalletService {
      * @throws InsufficientFundsException se il conto sorgente non ha fondi sufficienti
      * @throws RateNotFoundException      se non è disponibile un tasso di cambio
      */
-    public void transfer(int fromAccountId, int toAccountId, BigDecimal amount,
-            String description, int categoryId, LocalDate date)
+    public void transfer(int fromAccountId, int toAccountId, BigDecimal fromAmount,
+            BigDecimal toAmount, String description, int categoryId, LocalDate date)
             throws ItemNotFoundException, InvalidInputException,
             InsufficientFundsException, RateNotFoundException {
 
@@ -180,11 +237,11 @@ public class WalletService {
         Account toAccount = getAccount(toAccountId);
 
         // Verifica fondi sufficienti
-        if (MoneyUtil.isGreaterThan(amount, fromAccount.getBalance())) {
+        if (MoneyUtil.isGreaterThan(fromAmount, fromAccount.getBalance())) {
             throw new InsufficientFundsException(
                     "Fondi insufficienti sul conto " + fromAccount.getName() +
                             ". Disponibile: " + fromAccount.getBalance() +
-                            ", Richiesto: " + amount);
+                            ", Richiesto: " + fromAmount);
         }
 
         // Recupera le valute dei conti
@@ -193,45 +250,59 @@ public class WalletService {
         Currency toCurrency = currencyManager.getCurrencyByCode(
                 getCurrencyCodeForAccount(toAccount));
 
-        // Converti l'importo se le valute sono diverse
-        BigDecimal convertedAmount = exchangeStrategy.convert(
-                amount, fromCurrency, toCurrency, date);
+        boolean differentCurrencies = !fromCurrency.getCode().equals(toCurrency.getCode());
 
-        // Crea le transazioni di trasferimento
+        // Determina l'importo finale per il conto destinazione
+        BigDecimal finalToAmount;
+        BigDecimal exchangeRate = null;
+
+        if (differentCurrencies) {
+            if (toAmount != null) {
+                // Importo manuale: calcola il tasso dal rapporto
+                finalToAmount = toAmount;
+                exchangeRate = MoneyUtil.divideRates(toAmount, fromAmount);
+            } else {
+                // Conversione automatica con la strategia
+                finalToAmount = exchangeStrategy.convert(fromAmount, fromCurrency, toCurrency, date);
+            }
+        } else {
+            finalToAmount = fromAmount;
+        }
+
+        // Transazione di uscita sul conto sorgente (TRANSFER)
         List<Transaction> transfers = TransactionFactory.createTransfer(
-                amount, description, fromAccountId, toAccountId, categoryId, date);
+                fromAmount, description, fromAccountId, toAccountId, categoryId, date);
 
         Transaction outgoing = transfers.get(0);
-
-        // Aggiungi la transazione di uscita al conto sorgente
         fromAccount.addTransaction(outgoing);
         transactionRepository.save(outgoing);
         accountRepository.save(fromAccount);
 
-        // Per il conto destinazione, se valuta diversa, crea una transazione INCOME
-        // con l'importo convertito per gestire correttamente il saldo
-        if (!fromCurrency.getCode().equals(toCurrency.getCode())) {
-            Transaction incomingConverted = TransactionFactory.createIncome(
-                    convertedAmount,
-                    description + " (trasferimento in entrata, convertito da " +
-                            fromCurrency.getCode() + ")",
-                    categoryId, toAccountId, date);
-            toAccount.addTransaction(incomingConverted);
-            transactionRepository.save(incomingConverted);
-        } else {
-            // Stessa valuta: usa INCOME per l'entrata (TRANSFER sottrarrebbe)
-            Transaction incomingAsIncome = TransactionFactory.createIncome(
-                    amount,
-                    description + " (trasferimento in entrata)",
-                    categoryId, toAccountId, date);
-            toAccount.addTransaction(incomingAsIncome);
-            transactionRepository.save(incomingAsIncome);
+        // Transazione di entrata sul conto destinazione
+        int inId = transactionRepository.generateNextId();
+        Transaction.Builder incomingBuilder = new Transaction.Builder()
+                .withId(inId)
+                .withAccountId(toAccountId)
+                .withType(TransactionType.INCOME)
+                .withDate(date)
+                .withAmount(finalToAmount)
+                .withDescription(description + " (trasferimento da " + fromAccount.getName() + ")")
+                .withCategoryId(categoryId);
+
+        // Se valute diverse e importo manuale, registra info sulla conversione
+        if (differentCurrencies && toAmount != null) {
+            incomingBuilder.withOriginalAmount(fromAmount);
+            incomingBuilder.withOriginalCurrencyId(fromCurrency.getId());
+            incomingBuilder.withExchangeRate(exchangeRate);
         }
 
+        Transaction incoming = incomingBuilder.build();
+        toAccount.addTransaction(incoming);
+        transactionRepository.save(incoming);
         accountRepository.save(toAccount);
 
-        logger.info("Trasferimento completato: " + amount + " da conto " +
-                fromAccountId + " a conto " + toAccountId);
+        logger.info("Trasferimento completato: " + fromAmount + " " + fromCurrency.getCode() +
+                " -> " + finalToAmount + " " + toCurrency.getCode());
     }
 
     /**

@@ -17,6 +17,7 @@ import edu.epicode.mysmartwallet.service.ReportService;
 import edu.epicode.mysmartwallet.service.WalletService;
 import edu.epicode.mysmartwallet.service.observer.ConsoleBalanceObserver;
 import edu.epicode.mysmartwallet.service.strategy.HistoricalExchangeStrategy;
+import edu.epicode.mysmartwallet.exception.RateNotFoundException;
 import edu.epicode.mysmartwallet.util.AppLogger;
 import edu.epicode.mysmartwallet.util.InputValidator;
 import edu.epicode.mysmartwallet.util.MoneyUtil;
@@ -286,7 +287,15 @@ public class Main {
         if (accountIndex < 0) return;
         Account account = accounts.get(accountIndex);
 
-        BigDecimal amount = readAmount("Importo");
+        // Selezione valuta con default = valuta del conto
+        Currency accountCurrency = getCurrencyForAccount(account);
+        Currency selectedCurrency = selectTransactionCurrency(accountCurrency);
+
+        // Importo nella valuta selezionata
+        String currencyLabel = selectedCurrency != null ?
+                " (" + selectedCurrency.getCode() + ")" : "";
+        BigDecimal inputAmount = readAmount("Importo" + currencyLabel);
+
         String description = readString("Descrizione");
 
         System.out.println("\nSeleziona la categoria:");
@@ -297,8 +306,154 @@ public class Main {
 
         LocalDate date = readDate("Data (yyyy-MM-dd, invio per oggi)");
 
-        walletService.addTransaction(account.getId(), type, amount, description, categoryId, date);
+        // Gestione conversione valutaria
+        BigDecimal finalAmount = inputAmount;
+        BigDecimal originalAmount = null;
+        Integer originalCurrencyId = null;
+        BigDecimal exchangeRate = null;
+
+        if (selectedCurrency != null && accountCurrency != null &&
+                selectedCurrency.getId() != accountCurrency.getId()) {
+
+            // Chiedi come gestire il tasso
+            ExchangeRateChoice rateChoice = selectExchangeRateMethod();
+
+            if (rateChoice.isManual()) {
+                exchangeRate = rateChoice.getRate();
+            } else {
+                // Usa strategia storica
+                try {
+                    BigDecimal rateFrom = selectedCurrency.getRateForDate(date);
+                    BigDecimal rateTo = accountCurrency.getRateForDate(date);
+                    exchangeRate = MoneyUtil.divideRates(rateFrom, rateTo);
+                } catch (RateNotFoundException e) {
+                    System.out.println("Tasso storico non disponibile per la data selezionata.");
+                    System.out.println("Inserisci un tasso manualmente:");
+                    exchangeRate = readExchangeRate();
+                }
+            }
+
+            // Converti
+            finalAmount = MoneyUtil.multiplyByRate(inputAmount, exchangeRate);
+            originalAmount = inputAmount;
+            originalCurrencyId = selectedCurrency.getId();
+
+            System.out.printf("%nConversione: %s %s -> %s %s (tasso: %s)%n",
+                    MoneyUtil.format(inputAmount, selectedCurrency.getSymbol()),
+                    selectedCurrency.getCode(),
+                    MoneyUtil.format(finalAmount, accountCurrency.getSymbol()),
+                    accountCurrency.getCode(),
+                    exchangeRate.toPlainString());
+        }
+
+        walletService.addTransactionWithCurrency(account.getId(), type, finalAmount,
+                description, categoryId, date, originalAmount, originalCurrencyId, exchangeRate);
         System.out.println("\nTransazione registrata con successo!");
+    }
+
+    /**
+     * Permette all'utente di selezionare la valuta per la transazione.
+     * La valuta del conto e' proposta come default (premendo Enter).
+     *
+     * @param accountCurrency la valuta del conto (default)
+     * @return la valuta selezionata
+     */
+    private static Currency selectTransactionCurrency(Currency accountCurrency) {
+        if (accountCurrency == null) {
+            return null;
+        }
+
+        System.out.printf("%nValuta transazione (default: %s, premi Enter per confermare):%n",
+                accountCurrency.getCode());
+
+        List<Currency> currencies = currencyManager.getAllCurrencies();
+        for (int i = 0; i < currencies.size(); i++) {
+            Currency c = currencies.get(i);
+            String defaultMark = c.getId() == accountCurrency.getId() ? " [DEFAULT]" : "";
+            System.out.printf("  [%d] %s (%s) %s%s%n",
+                    i + 1, c.getCode(), c.getName(), c.getSymbol(), defaultMark);
+        }
+
+        System.out.print("Valuta (1-" + currencies.size() + ", Enter per default): ");
+        String input = scanner.nextLine().trim();
+
+        if (input.isEmpty()) {
+            return accountCurrency;
+        }
+
+        try {
+            int index = Integer.parseInt(input) - 1;
+            if (index >= 0 && index < currencies.size()) {
+                return currencies.get(index);
+            }
+        } catch (NumberFormatException e) {
+            // Ignora, usa default
+        }
+
+        System.out.println("Scelta non valida, uso valuta del conto.");
+        return accountCurrency;
+    }
+
+    /**
+     * Chiede all'utente come determinare il tasso di cambio.
+     *
+     * @return la scelta con eventuale tasso manuale
+     */
+    private static ExchangeRateChoice selectExchangeRateMethod() {
+        System.out.println("\nMetodo per il tasso di cambio:");
+        System.out.println("  [1] Tasso automatico (storico alla data)");
+        System.out.println("  [2] Tasso manuale (inserisci tu)");
+
+        int choice = readInt("Scelta");
+
+        if (choice == 2) {
+            BigDecimal rate = readExchangeRate();
+            return new ExchangeRateChoice(true, rate);
+        }
+
+        return new ExchangeRateChoice(false, null);
+    }
+
+    /**
+     * Legge un tasso di cambio dall'input.
+     *
+     * @return il tasso come BigDecimal
+     */
+    private static BigDecimal readExchangeRate() {
+        while (true) {
+            System.out.print("Tasso di cambio: ");
+            String input = scanner.nextLine().trim();
+            try {
+                BigDecimal rate = MoneyUtil.ofRate(input);
+                if (MoneyUtil.isPositive(rate)) {
+                    return rate;
+                }
+                System.out.println("Il tasso deve essere positivo.");
+            } catch (NumberFormatException e) {
+                System.out.println("Formato non valido. Usa formato numerico (es: 1.10).");
+            }
+        }
+    }
+
+    /**
+     * Classe interna per rappresentare la scelta del tasso di cambio.
+     */
+    private static class ExchangeRateChoice {
+        private final boolean manual;
+        private final BigDecimal rate;
+
+        ExchangeRateChoice(boolean manual, BigDecimal rate) {
+            this.manual = manual;
+            this.rate = rate;
+        }
+
+        boolean isManual() {
+            return manual;
+        }
+
+        BigDecimal getRate() {
+            return rate;
+        }
     }
 
     /**
@@ -335,6 +490,7 @@ public class Main {
 
     /**
      * Gestisce un trasferimento tra conti.
+     * Il flusso permette di specificare importi diversi per conti con valute diverse.
      */
     private static void handleTransfer() throws WalletException {
         System.out.println("\n+--- TRASFERIMENTO ---+");
@@ -345,6 +501,7 @@ public class Main {
             return;
         }
 
+        // Mostra conti disponibili
         System.out.println("\nConti disponibili:");
         for (Account account : accounts) {
             Currency currency = getCurrencyForAccount(account);
@@ -354,20 +511,63 @@ public class Main {
                     MoneyUtil.format(account.getBalance(), ""), symbol);
         }
 
+        // Selezione conto origine
         int fromId = readInt("ID conto origine");
-        int toId = readInt("ID conto destinazione");
+        Account fromAccount = walletService.getAccount(fromId);
+        Currency fromCurrency = getCurrencyForAccount(fromAccount);
+        String fromSymbol = fromCurrency != null ? fromCurrency.getCode() : "";
 
+        // Chiedi importo nella valuta del conto origine
+        BigDecimal fromAmount = readAmount("Importo (" + fromSymbol + ")");
+
+        // Verifica disponibilità
+        if (MoneyUtil.isGreaterThan(fromAmount, fromAccount.getBalance())) {
+            System.out.println("Fondi insufficienti. Disponibile: " +
+                    MoneyUtil.format(fromAccount.getBalance(), fromSymbol));
+            return;
+        }
+
+        // Selezione conto destinazione
+        System.out.println("\nAltri conti:");
+        for (Account account : accounts) {
+            if (account.getId() != fromId) {
+                Currency currency = getCurrencyForAccount(account);
+                String symbol = currency != null ? currency.getSymbol() : "";
+                System.out.printf("  [%d] %-15s - Saldo: %s %s%n",
+                        account.getId(), account.getName(),
+                        MoneyUtil.format(account.getBalance(), ""), symbol);
+            }
+        }
+
+        int toId = readInt("ID conto destinazione");
         if (fromId == toId) {
             System.out.println("I conti di origine e destinazione devono essere diversi.");
             return;
         }
 
-        BigDecimal amount = readAmount("Importo");
-        String description = readString("Descrizione");
+        Account toAccount = walletService.getAccount(toId);
+        Currency toCurrency = getCurrencyForAccount(toAccount);
+        String toSymbol = toCurrency != null ? toCurrency.getCode() : "";
 
+        // Se valute diverse, chiedi l'importo nella valuta di destinazione
+        BigDecimal toAmount = null;
+        if (fromCurrency != null && toCurrency != null &&
+                fromCurrency.getId() != toCurrency.getId()) {
+
+            System.out.println("\nI conti hanno valute diverse (" +
+                    fromSymbol + " -> " + toSymbol + ").");
+            toAmount = readAmount("Importo da accreditare (" + toSymbol + ")");
+
+            // Mostra il tasso di cambio calcolato
+            BigDecimal rate = MoneyUtil.divideRates(toAmount, fromAmount);
+            System.out.printf("Tasso di cambio calcolato: %s%n", rate.toPlainString());
+        }
+
+        String description = readString("Descrizione");
         int transferCategoryId = 3;
 
-        walletService.transfer(fromId, toId, amount, description, transferCategoryId, LocalDate.now());
+        walletService.transfer(fromId, toId, fromAmount, toAmount, description,
+                transferCategoryId, LocalDate.now());
         System.out.println("\nTrasferimento completato con successo!");
     }
 

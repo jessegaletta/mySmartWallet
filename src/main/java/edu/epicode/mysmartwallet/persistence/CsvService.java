@@ -205,9 +205,11 @@ public final class CsvService {
         Path filePath = Paths.get(DATA_DIR + TRANSACTIONS_FILE);
 
         try (BufferedWriter writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8)) {
-            // Scrivi header
+            // Scrivi header (esteso con campi valuta)
             writer.write("ID" + SEPARATOR + "AccountID" + SEPARATOR + "Type" + SEPARATOR +
-                    "Date" + SEPARATOR + "Amount" + SEPARATOR + "Description" + SEPARATOR + "CategoryID");
+                    "Date" + SEPARATOR + "Amount" + SEPARATOR + "Description" + SEPARATOR +
+                    "CategoryID" + SEPARATOR + "OriginalAmount" + SEPARATOR +
+                    "OriginalCurrencyId" + SEPARATOR + "ExchangeRate");
             writer.newLine();
 
             // Scrivi dati
@@ -225,6 +227,16 @@ public final class CsvService {
                 writer.write(escapeField(transaction.getDescription() != null ? transaction.getDescription() : ""));
                 writer.write(SEPARATOR);
                 writer.write(String.valueOf(transaction.getCategoryId()));
+                writer.write(SEPARATOR);
+                // Nuovi campi valuta (vuoti se null)
+                writer.write(transaction.getOriginalAmount() != null ?
+                        transaction.getOriginalAmount().toPlainString() : "");
+                writer.write(SEPARATOR);
+                writer.write(transaction.getOriginalCurrencyId() != null ?
+                        String.valueOf(transaction.getOriginalCurrencyId()) : "");
+                writer.write(SEPARATOR);
+                writer.write(transaction.getExchangeRate() != null ?
+                        transaction.getExchangeRate().toPlainString() : "");
                 writer.newLine();
             }
 
@@ -265,7 +277,7 @@ public final class CsvService {
                 }
 
                 String[] fields = line.split(SEPARATOR, -1);
-                if (fields.length >= 7) {
+                if (fields.length >= 10) {
                     int id = Integer.parseInt(fields[0].trim());
                     int accountId = Integer.parseInt(fields[1].trim());
                     TransactionType type = TransactionType.valueOf(fields[2].trim());
@@ -274,17 +286,27 @@ public final class CsvService {
                     String description = unescapeField(fields[5]);
                     int categoryId = Integer.parseInt(fields[6].trim());
 
-                    Transaction transaction = new Transaction.Builder()
+                    Transaction.Builder builder = new Transaction.Builder()
                             .withId(id)
                             .withAccountId(accountId)
                             .withType(type)
                             .withDate(date)
                             .withAmount(amount)
                             .withDescription(description)
-                            .withCategoryId(categoryId)
-                            .build();
+                            .withCategoryId(categoryId);
 
-                    transactions.add(transaction);
+                    // Campi valuta (vuoti se nessuna conversione)
+                    if (!fields[7].trim().isEmpty()) {
+                        builder.withOriginalAmount(new BigDecimal(fields[7].trim()));
+                    }
+                    if (!fields[8].trim().isEmpty()) {
+                        builder.withOriginalCurrencyId(Integer.parseInt(fields[8].trim()));
+                    }
+                    if (!fields[9].trim().isEmpty()) {
+                        builder.withExchangeRate(new BigDecimal(fields[9].trim()));
+                    }
+
+                    transactions.add(builder.build());
                 }
             }
 

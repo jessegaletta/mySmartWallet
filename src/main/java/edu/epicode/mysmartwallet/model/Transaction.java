@@ -21,6 +21,9 @@ public final class Transaction extends BaseEntity {
     private final TransactionType type;
     private final int categoryId;
     private final int accountId;
+    private final BigDecimal originalAmount;
+    private final Integer originalCurrencyId;
+    private final BigDecimal exchangeRate;
 
     /**
      * Costruttore privato. Usare {@link Builder} per creare istanze.
@@ -33,6 +36,9 @@ public final class Transaction extends BaseEntity {
         this.type = builder.type;
         this.categoryId = builder.categoryId;
         this.accountId = builder.accountId;
+        this.originalAmount = builder.originalAmount;
+        this.originalCurrencyId = builder.originalCurrencyId;
+        this.exchangeRate = builder.exchangeRate;
     }
 
     /**
@@ -89,17 +95,62 @@ public final class Transaction extends BaseEntity {
         return accountId;
     }
 
+    /**
+     * Restituisce l'importo originale nella valuta di inserimento.
+     * Se null, non c'e' stata conversione valutaria.
+     *
+     * @return l'importo originale o null
+     */
+    public BigDecimal getOriginalAmount() {
+        return originalAmount;
+    }
+
+    /**
+     * Restituisce l'ID della valuta originale della transazione.
+     * Se null, la valuta e' la stessa del conto associato.
+     *
+     * @return l'ID della valuta originale o null
+     */
+    public Integer getOriginalCurrencyId() {
+        return originalCurrencyId;
+    }
+
+    /**
+     * Restituisce il tasso di cambio applicato per la conversione.
+     * Se null, non e' stata effettuata conversione.
+     *
+     * @return il tasso di cambio o null
+     */
+    public BigDecimal getExchangeRate() {
+        return exchangeRate;
+    }
+
+    /**
+     * Indica se la transazione ha subito una conversione valutaria.
+     *
+     * @return true se c'e' stata conversione
+     */
+    public boolean hasConversion() {
+        return originalCurrencyId != null && exchangeRate != null;
+    }
+
     @Override
     public String toString() {
-        return "Transaction{" +
-                "id=" + id +
-                ", date=" + date +
-                ", type=" + type.getDescription() +
-                ", amount=" + MoneyUtil.format(amount, "") +
-                ", description='" + description + '\'' +
-                ", categoryId=" + categoryId +
-                ", accountId=" + accountId +
-                '}';
+        StringBuilder sb = new StringBuilder("Transaction{");
+        sb.append("id=").append(id);
+        sb.append(", date=").append(date);
+        sb.append(", type=").append(type.getDescription());
+        sb.append(", amount=").append(MoneyUtil.format(amount, ""));
+        if (hasConversion()) {
+            sb.append(", originalAmount=").append(MoneyUtil.format(originalAmount, ""));
+            sb.append(", originalCurrencyId=").append(originalCurrencyId);
+            sb.append(", exchangeRate=").append(exchangeRate.toPlainString());
+        }
+        sb.append(", description='").append(description).append('\'');
+        sb.append(", categoryId=").append(categoryId);
+        sb.append(", accountId=").append(accountId);
+        sb.append('}');
+        return sb.toString();
     }
 
     /**
@@ -115,6 +166,9 @@ public final class Transaction extends BaseEntity {
         private TransactionType type;
         private int categoryId;
         private int accountId;
+        private BigDecimal originalAmount;
+        private Integer originalCurrencyId;
+        private BigDecimal exchangeRate;
 
         /**
          * Crea un nuovo Builder.
@@ -197,6 +251,39 @@ public final class Transaction extends BaseEntity {
          */
         public Builder withAccountId(int accountId) {
             this.accountId = accountId;
+            return this;
+        }
+
+        /**
+         * Imposta l'importo originale prima della conversione valutaria.
+         *
+         * @param originalAmount l'importo nella valuta originale
+         * @return questo Builder
+         */
+        public Builder withOriginalAmount(BigDecimal originalAmount) {
+            this.originalAmount = originalAmount;
+            return this;
+        }
+
+        /**
+         * Imposta l'ID della valuta originale.
+         *
+         * @param originalCurrencyId l'ID della valuta
+         * @return questo Builder
+         */
+        public Builder withOriginalCurrencyId(Integer originalCurrencyId) {
+            this.originalCurrencyId = originalCurrencyId;
+            return this;
+        }
+
+        /**
+         * Imposta il tasso di cambio utilizzato per la conversione.
+         *
+         * @param exchangeRate il tasso di cambio
+         * @return questo Builder
+         */
+        public Builder withExchangeRate(BigDecimal exchangeRate) {
+            this.exchangeRate = exchangeRate;
             return this;
         }
 

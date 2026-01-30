@@ -112,7 +112,7 @@ class WalletServiceTest {
         Account to = walletService.createAccount("Conto B", "EUR", MoneyUtil.of("100.00"));
 
         walletService.transfer(from.getId(), to.getId(), MoneyUtil.of("200.00"),
-                "Trasferimento test", testCategoryId, testDate);
+                null, "Trasferimento test", testCategoryId, testDate);
 
         Account updatedFrom = walletService.getAccount(from.getId());
         Account updatedTo = walletService.getAccount(to.getId());
@@ -129,7 +129,7 @@ class WalletServiceTest {
 
         assertThrows(InsufficientFundsException.class, () ->
                 walletService.transfer(from.getId(), to.getId(), MoneyUtil.of("100.00"),
-                        "Trasferimento", testCategoryId, testDate));
+                        null, "Trasferimento", testCategoryId, testDate));
     }
 
     @Test
