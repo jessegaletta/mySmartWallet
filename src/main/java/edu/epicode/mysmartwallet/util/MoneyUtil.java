@@ -49,17 +49,6 @@ public final class MoneyUtil {
     }
 
     /**
-     * Crea un BigDecimal da un valore double.
-     * Utilizza valueOf per evitare problemi di precisione.
-     *
-     * @param amount il valore double
-     * @return il BigDecimal corrispondente con scala corretta
-     */
-    public static BigDecimal of(double amount) {
-        return BigDecimal.valueOf(amount).setScale(DEFAULT_SCALE, DEFAULT_ROUNDING);
-    }
-
-    /**
      * Somma due importi.
      *
      * @param a il primo addendo
@@ -158,17 +147,6 @@ public final class MoneyUtil {
      */
     public static BigDecimal ofRate(String rate) {
         return new BigDecimal(rate);
-    }
-
-    /**
-     * Crea un BigDecimal per un tasso di cambio da un valore double.
-     * Non applica arrotondamento per preservare la precisione originale.
-     *
-     * @param rate il valore double del tasso
-     * @return il BigDecimal corrispondente senza arrotondamento
-     */
-    public static BigDecimal ofRate(double rate) {
-        return BigDecimal.valueOf(rate);
     }
 
     /**

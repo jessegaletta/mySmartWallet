@@ -1,6 +1,8 @@
 package edu.epicode.mysmartwallet.service;
 
+import edu.epicode.mysmartwallet.exception.RateNotFoundException;
 import edu.epicode.mysmartwallet.model.Account;
+import edu.epicode.mysmartwallet.model.Currency;
 import edu.epicode.mysmartwallet.model.Transaction;
 import edu.epicode.mysmartwallet.model.TransactionType;
 import edu.epicode.mysmartwallet.repository.DataStorage;
@@ -13,7 +15,6 @@ import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -27,8 +28,7 @@ import java.util.stream.Collectors;
  * <ul>
  *   <li>Calcolo totali entrate/uscite</li>
  *   <li>Raggruppamento spese per categoria</li>
- *   <li>Filtraggio transazioni per periodo e tipo</li>
- *   <li>Statistiche (media, massimo)</li>
+ *   <li>Filtraggio transazioni per periodo</li>
  *   <li>Ricerca per descrizione</li>
  * </ul>
  * </p>
@@ -41,6 +41,7 @@ public class ReportService {
     private static final Logger logger = AppLogger.getLogger(ReportService.class);
 
     private final Repository<Account> accountRepository;
+    private final CurrencyManager currencyManager;
 
     /**
      * Crea un nuovo ReportService recuperando i repository da DataStorage.
@@ -48,64 +49,139 @@ public class ReportService {
     public ReportService() {
         DataStorage dataStorage = DataStorage.getInstance();
         this.accountRepository = dataStorage.getAccountRepository();
+        this.currencyManager = CurrencyManager.getInstance();
         logger.info("ReportService inizializzato");
     }
 
     /**
-     * Calcola il totale delle uscite per un conto.
+     * Converte un importo nella valuta EUR usando il tasso del giorno della transazione.
+     *
+     * @param amount   l'importo da convertire
+     * @param currency la valuta dell'importo
+     * @param date     la data per il tasso di cambio
+     * @return l'importo convertito in EUR
+     */
+    private BigDecimal convertToEur(BigDecimal amount, Currency currency, LocalDate date) {
+        if (currency == null || currency.getCode().equals("EUR")) {
+            return amount;
+        }
+        try {
+            BigDecimal rate = currency.getRateForDate(date);
+            return MoneyUtil.divide(amount, rate);
+        } catch (RateNotFoundException e) {
+            logger.warning("Tasso non trovato per " + currency.getCode() + " alla data " + date +
+                    ", uso ultimo tasso disponibile");
+            return MoneyUtil.divide(amount, currency.getLatestRate());
+        }
+    }
+
+    /**
+     * Recupera la valuta associata a un account.
+     */
+    private Currency getCurrencyForAccount(Account account) {
+        return currencyManager.getAllCurrencies().stream()
+                .filter(c -> c.getId() == account.getCurrencyId())
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Verifica se una data rientra in un periodo.
+     *
+     * @param date la data da verificare
+     * @param from la data di inizio (inclusa), null per nessun limite inferiore
+     * @param to   la data di fine (inclusa), null per nessun limite superiore
+     * @return true se la data rientra nel periodo
+     */
+    private boolean isInPeriod(LocalDate date, LocalDate from, LocalDate to) {
+        if (from != null && date.isBefore(from)) {
+            return false;
+        }
+        if (to != null && date.isAfter(to)) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Calcola il totale delle uscite per un conto in un periodo, convertito in EUR.
      *
      * @param accountId l'ID del conto
-     * @return il totale delle uscite
+     * @param from      la data di inizio (inclusa), null per nessun limite
+     * @param to        la data di fine (inclusa), null per nessun limite
+     * @return il totale delle uscite in EUR
      */
-    public BigDecimal getTotalExpenses(int accountId) {
-        List<Transaction> transactions = getTransactionsForAccount(accountId);
+    public BigDecimal getTotalExpenses(int accountId, LocalDate from, LocalDate to) {
+        Account account = accountRepository.findById(accountId).orElse(null);
+        if (account == null) {
+            return BigDecimal.ZERO;
+        }
 
-        BigDecimal total = transactions.stream()
+        Currency currency = getCurrencyForAccount(account);
+
+        BigDecimal total = account.getTransactions().stream()
                 .filter(t -> t.getType() == TransactionType.EXPENSE)
-                .map(Transaction::getAmount)
+                .filter(t -> isInPeriod(t.getDate(), from, to))
+                .map(t -> convertToEur(t.getAmount(), currency, t.getDate()))
                 .reduce(BigDecimal.ZERO, MoneyUtil::add);
 
-        logger.fine("Totale uscite per conto " + accountId + ": " + total);
+        logger.fine("Totale uscite per conto " + accountId + " (EUR): " + total);
         return total;
     }
 
     /**
-     * Calcola il totale delle entrate per un conto.
+     * Calcola il totale delle entrate per un conto in un periodo, convertito in EUR.
      *
      * @param accountId l'ID del conto
-     * @return il totale delle entrate
+     * @param from      la data di inizio (inclusa), null per nessun limite
+     * @param to        la data di fine (inclusa), null per nessun limite
+     * @return il totale delle entrate in EUR
      */
-    public BigDecimal getTotalIncome(int accountId) {
-        List<Transaction> transactions = getTransactionsForAccount(accountId);
+    public BigDecimal getTotalIncome(int accountId, LocalDate from, LocalDate to) {
+        Account account = accountRepository.findById(accountId).orElse(null);
+        if (account == null) {
+            return BigDecimal.ZERO;
+        }
 
-        BigDecimal total = transactions.stream()
+        Currency currency = getCurrencyForAccount(account);
+
+        BigDecimal total = account.getTransactions().stream()
                 .filter(t -> t.getType() == TransactionType.INCOME)
-                .map(Transaction::getAmount)
+                .filter(t -> isInPeriod(t.getDate(), from, to))
+                .map(t -> convertToEur(t.getAmount(), currency, t.getDate()))
                 .reduce(BigDecimal.ZERO, MoneyUtil::add);
 
-        logger.fine("Totale entrate per conto " + accountId + ": " + total);
+        logger.fine("Totale entrate per conto " + accountId + " (EUR): " + total);
         return total;
     }
 
     /**
-     * Raggruppa le uscite per categoria.
+     * Raggruppa le uscite per categoria in un periodo, convertite in EUR.
      *
      * @param accountId l'ID del conto
-     * @return mappa con ID categoria come chiave e totale spese come valore
+     * @param from      la data di inizio (inclusa), null per nessun limite
+     * @param to        la data di fine (inclusa), null per nessun limite
+     * @return mappa con ID categoria come chiave e totale spese in EUR come valore
      */
-    public Map<Integer, BigDecimal> getExpensesByCategory(int accountId) {
-        List<Transaction> transactions = getTransactionsForAccount(accountId);
+    public Map<Integer, BigDecimal> getExpensesByCategory(int accountId, LocalDate from, LocalDate to) {
+        Account account = accountRepository.findById(accountId).orElse(null);
+        if (account == null) {
+            return Map.of();
+        }
 
-        Map<Integer, BigDecimal> result = transactions.stream()
+        Currency currency = getCurrencyForAccount(account);
+
+        Map<Integer, BigDecimal> result = account.getTransactions().stream()
                 .filter(t -> t.getType() == TransactionType.EXPENSE)
+                .filter(t -> isInPeriod(t.getDate(), from, to))
                 .collect(Collectors.groupingBy(
                         Transaction::getCategoryId,
                         Collectors.reducing(
                                 BigDecimal.ZERO,
-                                Transaction::getAmount,
+                                t -> convertToEur(t.getAmount(), currency, t.getDate()),
                                 MoneyUtil::add)));
 
-        logger.fine("Spese per categoria calcolate per conto " + accountId);
+        logger.fine("Spese per categoria calcolate per conto " + accountId + " (EUR)");
         return result;
     }
 
@@ -113,102 +189,23 @@ public class ReportService {
      * Recupera le transazioni in un periodo specifico.
      *
      * @param accountId l'ID del conto
-     * @param from      la data di inizio (inclusa)
-     * @param to        la data di fine (inclusa)
+     * @param from      la data di inizio (inclusa), null per nessun limite inferiore
+     * @param to        la data di fine (inclusa), null per nessun limite superiore
      * @return lista delle transazioni nel periodo, ordinate per data
      */
     public List<Transaction> getTransactionsByPeriod(int accountId, LocalDate from, LocalDate to) {
         List<Transaction> transactions = getTransactionsForAccount(accountId);
 
         List<Transaction> result = transactions.stream()
-                .filter(t -> !t.getDate().isBefore(from) && !t.getDate().isAfter(to))
+                .filter(t -> (from == null || !t.getDate().isBefore(from)) &&
+                             (to == null || !t.getDate().isAfter(to)))
                 .sorted(Comparator.comparing(Transaction::getDate))
                 .collect(Collectors.toList());
 
-        logger.fine("Transazioni nel periodo " + from + " - " + to +
+        String fromStr = from != null ? from.toString() : "inizio";
+        String toStr = to != null ? to.toString() : "fine";
+        logger.fine("Transazioni nel periodo " + fromStr + " - " + toStr +
                 " per conto " + accountId + ": " + result.size());
-        return result;
-    }
-
-    /**
-     * Recupera le transazioni di un tipo specifico.
-     *
-     * @param accountId l'ID del conto
-     * @param type      il tipo di transazione
-     * @return lista delle transazioni del tipo specificato
-     */
-    public List<Transaction> getTransactionsByType(int accountId, TransactionType type) {
-        List<Transaction> transactions = getTransactionsForAccount(accountId);
-
-        List<Transaction> result = transactions.stream()
-                .filter(t -> t.getType() == type)
-                .collect(Collectors.toList());
-
-        logger.fine("Transazioni " + type + " per conto " + accountId + ": " + result.size());
-        return result;
-    }
-
-    /**
-     * Calcola la media delle uscite per un conto.
-     *
-     * @param accountId l'ID del conto
-     * @return la media delle uscite, o zero se non ci sono uscite
-     */
-    public BigDecimal getAverageExpense(int accountId) {
-        List<Transaction> transactions = getTransactionsForAccount(accountId);
-
-        List<BigDecimal> expenses = transactions.stream()
-                .filter(t -> t.getType() == TransactionType.EXPENSE)
-                .map(Transaction::getAmount)
-                .collect(Collectors.toList());
-
-        if (expenses.isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-
-        BigDecimal sum = expenses.stream()
-                .reduce(BigDecimal.ZERO, MoneyUtil::add);
-
-        BigDecimal average = MoneyUtil.divide(sum, BigDecimal.valueOf(expenses.size()));
-
-        logger.fine("Media uscite per conto " + accountId + ": " + average);
-        return average;
-    }
-
-    /**
-     * Trova la spesa più grande per un conto.
-     *
-     * @param accountId l'ID del conto
-     * @return la transazione con l'importo maggiore, o Optional vuoto se non ci sono uscite
-     */
-    public Optional<Transaction> getLargestExpense(int accountId) {
-        List<Transaction> transactions = getTransactionsForAccount(accountId);
-
-        Optional<Transaction> result = transactions.stream()
-                .filter(t -> t.getType() == TransactionType.EXPENSE)
-                .max(Comparator.comparing(Transaction::getAmount));
-
-        if (result.isPresent()) {
-            logger.fine("Spesa maggiore per conto " + accountId + ": " + result.get().getAmount());
-        }
-        return result;
-    }
-
-    /**
-     * Conta le transazioni raggruppate per tipo.
-     *
-     * @param accountId l'ID del conto
-     * @return mappa con tipo transazione come chiave e conteggio come valore
-     */
-    public Map<TransactionType, Long> getTransactionCountByType(int accountId) {
-        List<Transaction> transactions = getTransactionsForAccount(accountId);
-
-        Map<TransactionType, Long> result = transactions.stream()
-                .collect(Collectors.groupingBy(
-                        Transaction::getType,
-                        Collectors.counting()));
-
-        logger.fine("Conteggio transazioni per tipo calcolato per conto " + accountId);
         return result;
     }
 

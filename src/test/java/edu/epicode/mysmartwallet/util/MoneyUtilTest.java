@@ -23,13 +23,6 @@ class MoneyUtilTest {
     }
 
     @Test
-    @DisplayName("of(double) crea BigDecimal corretto")
-    void testOfDouble() {
-        BigDecimal result = MoneyUtil.of(100.5);
-        assertEquals(new BigDecimal("100.50"), result);
-    }
-
-    @Test
     @DisplayName("add somma correttamente due importi")
     void testAdd() {
         BigDecimal a = MoneyUtil.of("100.00");

@@ -1,13 +1,9 @@
 package edu.epicode.mysmartwallet.model.category;
 
-import edu.epicode.mysmartwallet.model.Transaction;
 import edu.epicode.mysmartwallet.util.AppLogger;
-import edu.epicode.mysmartwallet.util.MoneyUtil;
 
-import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import java.util.logging.Logger;
 
 /**
@@ -65,23 +61,5 @@ public class StandardCategory extends CategoryComponent {
     @Override
     public Iterator<CategoryComponent> iterator() {
         return Collections.singletonList((CategoryComponent) this).iterator();
-    }
-
-    /**
-     * Calcola il totale delle transazioni associate a questa categoria.
-     *
-     * @param transactions la lista di transazioni da analizzare
-     * @return la somma degli importi delle transazioni con categoryId uguale a questo id
-     */
-    @Override
-    public BigDecimal getTotalAmount(List<Transaction> transactions) {
-        BigDecimal total = MoneyUtil.ZERO;
-        for (Transaction transaction : transactions) {
-            if (transaction.getCategoryId() == this.id) {
-                total = MoneyUtil.add(total, transaction.getAmount());
-            }
-        }
-        logger.fine("Totale calcolato per categoria " + name + ": " + total);
-        return total;
     }
 }

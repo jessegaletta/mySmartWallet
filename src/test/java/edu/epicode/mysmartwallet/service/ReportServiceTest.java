@@ -15,13 +15,13 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test per la classe ReportService.
- * Verifica le funzionalità di reportistica e aggregazione dati.
+ * Verifica le funzionalità di reportistica: totali entrate/uscite,
+ * raggruppamento spese per categoria, filtro per periodo e ricerca testuale.
  *
  * @author Jesse Galetta
  * @version 1.0
@@ -121,7 +121,7 @@ class ReportServiceTest {
     @Test
     @DisplayName("getTotalExpenses calcola correttamente il totale delle uscite")
     void testGetTotalExpenses() {
-        BigDecimal totalExpenses = reportService.getTotalExpenses(accountId);
+        BigDecimal totalExpenses = reportService.getTotalExpenses(accountId, null, null);
 
         // 50 + 100 + 30 = 180
         assertEquals(MoneyUtil.of("180.00"), totalExpenses);
@@ -134,7 +134,7 @@ class ReportServiceTest {
         Account emptyAccount = new Account(2, "Conto Vuoto", 1, MoneyUtil.of("500.00"));
         DataStorage.getInstance().getAccountRepository().save(emptyAccount);
 
-        BigDecimal totalExpenses = reportService.getTotalExpenses(emptyAccount.getId());
+        BigDecimal totalExpenses = reportService.getTotalExpenses(emptyAccount.getId(), null, null);
 
         assertEquals(BigDecimal.ZERO, totalExpenses);
     }
@@ -142,7 +142,7 @@ class ReportServiceTest {
     @Test
     @DisplayName("getTotalIncome calcola correttamente il totale delle entrate")
     void testGetTotalIncome() {
-        BigDecimal totalIncome = reportService.getTotalIncome(accountId);
+        BigDecimal totalIncome = reportService.getTotalIncome(accountId, null, null);
 
         // 500 + 200 = 700
         assertEquals(MoneyUtil.of("700.00"), totalIncome);
@@ -166,7 +166,7 @@ class ReportServiceTest {
                 .build();
         emptyAccount.addTransaction(expense);
 
-        BigDecimal totalIncome = reportService.getTotalIncome(emptyAccount.getId());
+        BigDecimal totalIncome = reportService.getTotalIncome(emptyAccount.getId(), null, null);
 
         assertEquals(BigDecimal.ZERO, totalIncome);
     }
@@ -174,7 +174,7 @@ class ReportServiceTest {
     @Test
     @DisplayName("getExpensesByCategory raggruppa correttamente le spese")
     void testGetExpensesByCategory() {
-        Map<Integer, BigDecimal> expensesByCategory = reportService.getExpensesByCategory(accountId);
+        Map<Integer, BigDecimal> expensesByCategory = reportService.getExpensesByCategory(accountId, null, null);
 
         // Categoria 10: 50 + 100 = 150
         assertEquals(MoneyUtil.of("150.00"), expensesByCategory.get(10));
@@ -203,7 +203,7 @@ class ReportServiceTest {
                 .build();
         incomeOnly.addTransaction(income);
 
-        Map<Integer, BigDecimal> result = reportService.getExpensesByCategory(incomeOnly.getId());
+        Map<Integer, BigDecimal> result = reportService.getExpensesByCategory(incomeOnly.getId(), null, null);
 
         assertTrue(result.isEmpty());
     }
@@ -251,59 +251,6 @@ class ReportServiceTest {
     }
 
     @Test
-    @DisplayName("getLargestExpense trova la spesa maggiore")
-    void testGetLargestExpense() {
-        Optional<Transaction> largest = reportService.getLargestExpense(accountId);
-
-        assertTrue(largest.isPresent());
-        assertEquals(MoneyUtil.of("100.00"), largest.get().getAmount());
-        assertEquals("Spesa alimentari", largest.get().getDescription());
-    }
-
-    @Test
-    @DisplayName("getLargestExpense restituisce Optional vuoto per account senza spese")
-    void testGetLargestExpenseNoExpenses() throws InvalidInputException {
-        Account noExpenses = new Account(5, "Solo Income", 1, MoneyUtil.of("0.00"));
-        DataStorage.getInstance().getAccountRepository().save(noExpenses);
-
-        Transaction income = new Transaction.Builder()
-                .withId(30)
-                .withAccountId(5)
-                .withType(TransactionType.INCOME)
-                .withDate(LocalDate.now())
-                .withAmount(MoneyUtil.of("1000.00"))
-                .withDescription("Stipendio")
-                .withCategoryId(30)
-                .build();
-        noExpenses.addTransaction(income);
-
-        Optional<Transaction> largest = reportService.getLargestExpense(noExpenses.getId());
-
-        assertTrue(largest.isEmpty());
-    }
-
-    @Test
-    @DisplayName("getAverageExpense calcola correttamente la media")
-    void testGetAverageExpense() {
-        BigDecimal average = reportService.getAverageExpense(accountId);
-
-        // (50 + 100 + 30) / 3 = 60
-        assertEquals(MoneyUtil.of("60.00"), average);
-    }
-
-    @Test
-    @DisplayName("getTransactionsByType filtra correttamente per tipo")
-    void testGetTransactionsByType() {
-        List<Transaction> expenses = reportService.getTransactionsByType(accountId, TransactionType.EXPENSE);
-        List<Transaction> incomes = reportService.getTransactionsByType(accountId, TransactionType.INCOME);
-
-        assertEquals(3, expenses.size());
-        assertEquals(2, incomes.size());
-        assertTrue(expenses.stream().allMatch(t -> t.getType() == TransactionType.EXPENSE));
-        assertTrue(incomes.stream().allMatch(t -> t.getType() == TransactionType.INCOME));
-    }
-
-    @Test
     @DisplayName("searchByDescription trova transazioni per parola chiave")
     void testSearchByDescription() {
         List<Transaction> results = reportService.searchByDescription(accountId, "spesa");
@@ -322,24 +269,14 @@ class ReportServiceTest {
     }
 
     @Test
-    @DisplayName("getTransactionCountByType conta correttamente per tipo")
-    void testGetTransactionCountByType() {
-        Map<TransactionType, Long> counts = reportService.getTransactionCountByType(accountId);
-
-        assertEquals(3L, counts.get(TransactionType.EXPENSE));
-        assertEquals(2L, counts.get(TransactionType.INCOME));
-    }
-
-    @Test
     @DisplayName("metodi restituiscono valori corretti per account inesistente")
     void testMethodsForNonExistentAccount() {
         int nonExistentId = 999;
 
-        assertEquals(BigDecimal.ZERO, reportService.getTotalExpenses(nonExistentId));
-        assertEquals(BigDecimal.ZERO, reportService.getTotalIncome(nonExistentId));
-        assertTrue(reportService.getExpensesByCategory(nonExistentId).isEmpty());
+        assertEquals(BigDecimal.ZERO, reportService.getTotalExpenses(nonExistentId, null, null));
+        assertEquals(BigDecimal.ZERO, reportService.getTotalIncome(nonExistentId, null, null));
+        assertTrue(reportService.getExpensesByCategory(nonExistentId, null, null).isEmpty());
         assertTrue(reportService.getTransactionsByPeriod(nonExistentId,
                 LocalDate.now().minusMonths(1), LocalDate.now()).isEmpty());
-        assertTrue(reportService.getLargestExpense(nonExistentId).isEmpty());
     }
 }

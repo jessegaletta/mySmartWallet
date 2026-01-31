@@ -39,7 +39,7 @@ import java.util.logging.Logger;
  *
  * <p>Funzionalità disponibili:
  * <ul>
- *   <li>Dashboard con riepilogo conti e saldi</li>
+ *   <li>Riepilogo conti e saldi</li>
  *   <li>Gestione transazioni (entrate, uscite, trasferimenti)</li>
  *   <li>Report finanziari</li>
  *   <li>Gestione categorie gerarchiche</li>
@@ -206,10 +206,6 @@ public class Main {
      * Mostra la dashboard con il riepilogo dei conti.
      */
     private static void handleDashboard() {
-        System.out.println("\n+======================================+");
-        System.out.println("|            DASHBOARD                 |");
-        System.out.println("+======================================+");
-
         List<Account> accounts = walletService.getAllAccounts();
 
         if (accounts.isEmpty()) {
@@ -244,31 +240,34 @@ public class Main {
 
     /**
      * Gestisce il sottomenu dei conti.
+     * Il menu rimane attivo fino a quando l'utente non sceglie "Indietro".
      */
     private static void handleAccountMenu() throws WalletException {
-        System.out.println("\n+--- GESTIONE CONTI ---+");
-        System.out.println("| 1. Visualizza saldi  |");
-        System.out.println("| 2. Crea conto        |");
-        System.out.println("| 3. Elimina conto     |");
-        System.out.println("| 4. Indietro          |");
-        System.out.println("+----------------------+");
+        while (true) {
+            System.out.println("\n+--- GESTIONE CONTI ---+");
+            System.out.println("| 1. Visualizza saldi  |");
+            System.out.println("| 2. Crea conto        |");
+            System.out.println("| 3. Elimina conto     |");
+            System.out.println("| 4. Indietro          |");
+            System.out.println("+----------------------+");
 
-        int choice = readInt("Scelta");
+            int choice = readInt("Scelta");
 
-        switch (choice) {
-            case 1:
-                handleDashboard();
-                break;
-            case 2:
-                handleCreateAccount();
-                break;
-            case 3:
-                handleDeleteAccount();
-                break;
-            case 4:
-                break;
-            default:
-                System.out.println("Scelta non valida.");
+            switch (choice) {
+                case 1:
+                    handleDashboard();
+                    break;
+                case 2:
+                    handleCreateAccount();
+                    break;
+                case 3:
+                    handleDeleteAccount();
+                    break;
+                case 4:
+                    return;
+                default:
+                    System.out.println("Scelta non valida.");
+            }
         }
     }
 
@@ -379,31 +378,34 @@ public class Main {
 
     /**
      * Gestisce il sottomenu delle transazioni.
+     * Il menu rimane attivo fino a quando l'utente non sceglie "Indietro".
      */
     private static void handleTransactionMenu() throws WalletException {
-        System.out.println("\n+--- GESTIONE TRANSAZIONI ---+");
-        System.out.println("| 1. Inserisci transazione   |");
-        System.out.println("| 2. Cancella transazione    |");
-        System.out.println("| 3. Report                  |");
-        System.out.println("| 4. Indietro                |");
-        System.out.println("+----------------------------+");
+        while (true) {
+            System.out.println("\n+--- GESTIONE TRANSAZIONI ---+");
+            System.out.println("| 1. Inserisci transazione   |");
+            System.out.println("| 2. Cancella transazione    |");
+            System.out.println("| 3. Report                  |");
+            System.out.println("| 4. Indietro                |");
+            System.out.println("+----------------------------+");
 
-        int choice = readInt("Scelta");
+            int choice = readInt("Scelta");
 
-        switch (choice) {
-            case 1:
-                handleNewTransaction();
-                break;
-            case 2:
-                handleDeleteTransaction();
-                break;
-            case 3:
-                handleReports();
-                break;
-            case 4:
-                break;
-            default:
-                System.out.println("Scelta non valida.");
+            switch (choice) {
+                case 1:
+                    handleNewTransaction();
+                    break;
+                case 2:
+                    handleDeleteTransaction();
+                    break;
+                case 3:
+                    handleReports();
+                    break;
+                case 4:
+                    return;
+                default:
+                    System.out.println("Scelta non valida.");
+            }
         }
     }
 
@@ -617,7 +619,7 @@ public class Main {
                     exchangeRate.toPlainString());
         }
 
-        walletService.addTransactionWithCurrency(account.getId(), type, finalAmount,
+        walletService.addTransaction(account.getId(), type, finalAmount,
                 description, categoryId, date, originalAmount, originalCurrencyId, exchangeRate);
         System.out.println("\nTransazione registrata con successo!");
     }
@@ -846,82 +848,130 @@ public class Main {
 
     /**
      * Gestisce il menu dei report.
+     * Il menu rimane attivo fino a quando l'utente non sceglie "Indietro".
      */
     private static void handleReports() throws WalletException {
-        System.out.println("\n+--- REPORT ---+");
-        System.out.println("| 1. Totale spese          |");
-        System.out.println("| 2. Totale entrate        |");
-        System.out.println("| 3. Spese per categoria   |");
-        System.out.println("| 4. Transazioni periodo   |");
-        System.out.println("| 5. Spesa piu' grande     |");
-        System.out.println("| 6. Indietro              |");
-        System.out.println("+--------------------------+");
+        while (true) {
+            System.out.println("\n+--------- REPORT ---------+");
+            System.out.println("| 1. Totale spese          |");
+            System.out.println("| 2. Totale entrate        |");
+            System.out.println("| 3. Spese per categoria   |");
+            System.out.println("| 4. Transazioni periodo   |");
+            System.out.println("| 5. Cerca per descrizione |");
+            System.out.println("| 6. Indietro              |");
+            System.out.println("+--------------------------+");
 
-        int choice = readInt("Scelta");
+            int choice = readInt("Scelta");
 
-        if (choice == 6) return;
+            if (choice == 6) return;
 
-        List<Account> accounts = walletService.getAllAccounts();
-        if (accounts.isEmpty()) {
-            System.out.println("Nessun conto disponibile.");
+            List<Account> accounts = walletService.getAllAccounts();
+            if (accounts.isEmpty()) {
+                System.out.println("Nessun conto disponibile.");
+                continue;
+            }
+
+            System.out.println("\nSeleziona il conto (0 per tutti):");
+            for (Account acc : accounts) {
+                System.out.printf("  [%d] %s%n", acc.getId(), acc.getName());
+            }
+            int accountId = readInt("ID Conto");
+
+            switch (choice) {
+                case 1:
+                    reportTotalExpenses(accountId, accounts);
+                    break;
+                case 2:
+                    reportTotalIncome(accountId, accounts);
+                    break;
+                case 3:
+                    reportExpensesByCategory(accountId, accounts);
+                    break;
+                case 4:
+                    reportTransactionsByPeriod(accountId, accounts);
+                    break;
+                case 5:
+                    reportSearchByDescription(accountId, accounts);
+                    break;
+                default:
+                    System.out.println("Scelta non valida.");
+            }
+        }
+    }
+
+    private static void reportSearchByDescription(int accountId, List<Account> accounts) {
+        String keyword = readString("Parola chiave da cercare");
+        if (keyword.isEmpty()) {
+            System.out.println("Inserisci una parola chiave valida.");
             return;
         }
 
-        System.out.println("\nSeleziona il conto (0 per tutti):");
-        for (Account acc : accounts) {
-            System.out.printf("  [%d] %s%n", acc.getId(), acc.getName());
-        }
-        int accountId = readInt("ID Conto");
+        System.out.println("\nRisultati ricerca per '" + keyword + "':");
+        System.out.println("--------------------------------------");
 
-        switch (choice) {
-            case 1:
-                reportTotalExpenses(accountId, accounts);
-                break;
-            case 2:
-                reportTotalIncome(accountId, accounts);
-                break;
-            case 3:
-                reportExpensesByCategory(accountId, accounts);
-                break;
-            case 4:
-                reportTransactionsByPeriod(accountId, accounts);
-                break;
-            case 5:
-                reportLargestExpense(accountId, accounts);
-                break;
-            default:
-                System.out.println("Scelta non valida.");
+        boolean found = false;
+
+        if (accountId == 0) {
+            for (Account acc : accounts) {
+                List<Transaction> transactions = reportService.searchByDescription(acc.getId(), keyword);
+                if (!transactions.isEmpty()) {
+                    found = true;
+                    Currency currency = getCurrencyForAccount(acc);
+                    String symbol = currency != null ? currency.getSymbol() : "";
+                    System.out.println("\n" + acc.getName() + " (" + symbol + "):");
+                    printTransactions(transactions);
+                }
+            }
+        } else {
+            List<Transaction> transactions = reportService.searchByDescription(accountId, keyword);
+            if (!transactions.isEmpty()) {
+                found = true;
+                printTransactions(transactions);
+            }
+        }
+
+        if (!found) {
+            System.out.println("Nessuna transazione trovata.");
         }
     }
 
     private static void reportTotalExpenses(int accountId, List<Account> accounts) {
+        LocalDate from = readDateOptional("Data inizio (yyyy-MM-dd, invio per nessun limite)");
+        LocalDate to = readDateOptional("Data fine (yyyy-MM-dd, invio per nessun limite)");
+
         if (accountId == 0) {
             BigDecimal total = BigDecimal.ZERO;
             for (Account acc : accounts) {
-                total = MoneyUtil.add(total, reportService.getTotalExpenses(acc.getId()));
+                total = MoneyUtil.add(total, reportService.getTotalExpenses(acc.getId(), from, to));
             }
-            System.out.printf("%nTotale spese (tutti i conti): %s%n", MoneyUtil.format(total, ""));
+            System.out.printf("%nTotale spese (tutti i conti): %s EUR%n", MoneyUtil.format(total, ""));
         } else {
-            BigDecimal total = reportService.getTotalExpenses(accountId);
-            System.out.printf("%nTotale spese: %s%n", MoneyUtil.format(total, ""));
+            BigDecimal total = reportService.getTotalExpenses(accountId, from, to);
+            System.out.printf("%nTotale spese: %s EUR%n", MoneyUtil.format(total, ""));
         }
     }
 
     private static void reportTotalIncome(int accountId, List<Account> accounts) {
+        LocalDate from = readDateOptional("Data inizio (yyyy-MM-dd, invio per nessun limite)");
+        LocalDate to = readDateOptional("Data fine (yyyy-MM-dd, invio per nessun limite)");
+
         if (accountId == 0) {
             BigDecimal total = BigDecimal.ZERO;
             for (Account acc : accounts) {
-                total = MoneyUtil.add(total, reportService.getTotalIncome(acc.getId()));
+                total = MoneyUtil.add(total, reportService.getTotalIncome(acc.getId(), from, to));
             }
-            System.out.printf("%nTotale entrate (tutti i conti): %s%n", MoneyUtil.format(total, ""));
+            System.out.printf("%nTotale entrate (tutti i conti): %s EUR%n", MoneyUtil.format(total, ""));
         } else {
-            BigDecimal total = reportService.getTotalIncome(accountId);
-            System.out.printf("%nTotale entrate: %s%n", MoneyUtil.format(total, ""));
+            BigDecimal total = reportService.getTotalIncome(accountId, from, to);
+            System.out.printf("%nTotale entrate: %s EUR%n", MoneyUtil.format(total, ""));
         }
     }
 
     private static void reportExpensesByCategory(int accountId, List<Account> accounts) {
-        System.out.println("\nSpese per categoria:");
+        LocalDate from = readDateOptional("Data inizio (yyyy-MM-dd, invio per nessun limite)");
+        LocalDate to = readDateOptional("Data fine (yyyy-MM-dd, invio per nessun limite)");
+
+        System.out.println("\nSpese per categoria (EUR):");
         System.out.println("--------------------------------------");
 
         Map<Integer, CategoryComponent> categoryMap = new java.util.HashMap<>();
@@ -931,28 +981,28 @@ public class Main {
         if (accountId == 0) {
             Map<Integer, BigDecimal> totals = new java.util.HashMap<>();
             for (Account acc : accounts) {
-                Map<Integer, BigDecimal> expenses = reportService.getExpensesByCategory(acc.getId());
+                Map<Integer, BigDecimal> expenses = reportService.getExpensesByCategory(acc.getId(), from, to);
                 expenses.forEach((catId, amt) ->
                         totals.merge(catId, amt, MoneyUtil::add));
             }
             totals.forEach((catId, amt) -> {
                 String catName = categoryMap.containsKey(catId) ?
                         categoryMap.get(catId).getName() : "Sconosciuta";
-                System.out.printf("  %-20s: %s%n", catName, MoneyUtil.format(amt, ""));
+                System.out.printf("  %-20s: %s EUR%n", catName, MoneyUtil.format(amt, ""));
             });
         } else {
-            Map<Integer, BigDecimal> expenses = reportService.getExpensesByCategory(accountId);
+            Map<Integer, BigDecimal> expenses = reportService.getExpensesByCategory(accountId, from, to);
             expenses.forEach((catId, amt) -> {
                 String catName = categoryMap.containsKey(catId) ?
                         categoryMap.get(catId).getName() : "Sconosciuta";
-                System.out.printf("  %-20s: %s%n", catName, MoneyUtil.format(amt, ""));
+                System.out.printf("  %-20s: %s EUR%n", catName, MoneyUtil.format(amt, ""));
             });
         }
     }
 
     private static void reportTransactionsByPeriod(int accountId, List<Account> accounts) {
-        LocalDate from = readDate("Data inizio (yyyy-MM-dd)");
-        LocalDate to = readDate("Data fine (yyyy-MM-dd)");
+        LocalDate from = readDateOptional("Data inizio (yyyy-MM-dd, invio per nessun limite)");
+        LocalDate to = readDateOptional("Data fine (yyyy-MM-dd, invio per nessun limite)");
 
         System.out.println("\nTransazioni nel periodo:");
         System.out.println("--------------------------------------");
@@ -970,35 +1020,6 @@ public class Main {
             List<Transaction> transactions = reportService.getTransactionsByPeriod(
                     accountId, from, to);
             printTransactions(transactions);
-        }
-    }
-
-    private static void reportLargestExpense(int accountId, List<Account> accounts) {
-        if (accountId == 0) {
-            Transaction largest = null;
-            for (Account acc : accounts) {
-                Optional<Transaction> opt = reportService.getLargestExpense(acc.getId());
-                if (opt.isPresent()) {
-                    if (largest == null ||
-                        opt.get().getAmount().compareTo(largest.getAmount()) > 0) {
-                        largest = opt.get();
-                    }
-                }
-            }
-            if (largest != null) {
-                System.out.println("\nSpesa piu' grande (tutti i conti):");
-                printTransaction(largest);
-            } else {
-                System.out.println("\nNessuna spesa trovata.");
-            }
-        } else {
-            Optional<Transaction> opt = reportService.getLargestExpense(accountId);
-            if (opt.isPresent()) {
-                System.out.println("\nSpesa piu' grande:");
-                printTransaction(opt.get());
-            } else {
-                System.out.println("\nNessuna spesa trovata.");
-            }
         }
     }
 
@@ -1024,31 +1045,34 @@ public class Main {
 
     /**
      * Gestisce il menu delle categorie.
+     * Il menu rimane attivo fino a quando l'utente non sceglie "Indietro".
      */
     private static void handleCategories() throws WalletException {
-        System.out.println("\n+--- GESTIONE CATEGORIE ---+");
-        System.out.println("| 1. Visualizza albero     |");
-        System.out.println("| 2. Aggiungi categoria    |");
-        System.out.println("| 3. Elimina categoria     |");
-        System.out.println("| 4. Indietro              |");
-        System.out.println("+--------------------------+");
+        while (true) {
+            System.out.println("\n+--- GESTIONE CATEGORIE ---+");
+            System.out.println("| 1. Visualizza albero     |");
+            System.out.println("| 2. Aggiungi categoria    |");
+            System.out.println("| 3. Elimina categoria     |");
+            System.out.println("| 4. Indietro              |");
+            System.out.println("+--------------------------+");
 
-        int choice = readInt("Scelta");
+            int choice = readInt("Scelta");
 
-        switch (choice) {
-            case 1:
-                showCategoryTree();
-                break;
-            case 2:
-                addCategory();
-                break;
-            case 3:
-                deleteCategory();
-                break;
-            case 4:
-                break;
-            default:
-                System.out.println("Scelta non valida.");
+            switch (choice) {
+                case 1:
+                    showCategoryTree();
+                    break;
+                case 2:
+                    addCategory();
+                    break;
+                case 3:
+                    deleteCategory();
+                    break;
+                case 4:
+                    return;
+                default:
+                    System.out.println("Scelta non valida.");
+            }
         }
     }
 
@@ -1196,35 +1220,38 @@ public class Main {
 
     /**
      * Gestisce il menu delle valute.
+     * Il menu rimane attivo fino a quando l'utente non sceglie "Indietro".
      */
     private static void handleCurrencies() throws WalletException {
-        System.out.println("\n+--- GESTIONE VALUTE ---+");
-        System.out.println("| 1. Lista valute        |");
-        System.out.println("| 2. Inserisci tasso     |");
-        System.out.println("| 3. Aggiungi valuta     |");
-        System.out.println("| 4. Elimina valuta      |");
-        System.out.println("| 5. Indietro            |");
-        System.out.println("+------------------------+");
+        while (true) {
+            System.out.println("\n+--- GESTIONE VALUTE ---+");
+            System.out.println("| 1. Lista valute        |");
+            System.out.println("| 2. Inserisci tasso     |");
+            System.out.println("| 3. Aggiungi valuta     |");
+            System.out.println("| 4. Elimina valuta      |");
+            System.out.println("| 5. Indietro            |");
+            System.out.println("+------------------------+");
 
-        int choice = readInt("Scelta");
+            int choice = readInt("Scelta");
 
-        switch (choice) {
-            case 1:
-                listCurrencies();
-                break;
-            case 2:
-                updateRate();
-                break;
-            case 3:
-                addCurrency();
-                break;
-            case 4:
-                deleteCurrency();
-                break;
-            case 5:
-                break;
-            default:
-                System.out.println("Scelta non valida.");
+            switch (choice) {
+                case 1:
+                    listCurrencies();
+                    break;
+                case 2:
+                    updateRate();
+                    break;
+                case 3:
+                    addCurrency();
+                    break;
+                case 4:
+                    deleteCurrency();
+                    break;
+                case 5:
+                    return;
+                default:
+                    System.out.println("Scelta non valida.");
+            }
         }
     }
 
@@ -1466,6 +1493,31 @@ public class Main {
 
             if (input.isEmpty()) {
                 return LocalDate.now();
+            }
+
+            try {
+                LocalDate date = LocalDate.parse(input, DATE_FORMAT);
+                InputValidator.validateDate(date);
+                return date;
+            } catch (DateTimeParseException e) {
+                System.out.println("Formato data non valido. Usa yyyy-MM-dd (es: 2024-01-15).");
+            } catch (InvalidInputException e) {
+                System.out.println(e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Legge una data opzionale dall'input con validazione.
+     * Se l'input e' vuoto, restituisce null (nessun limite).
+     */
+    private static LocalDate readDateOptional(String prompt) {
+        while (true) {
+            System.out.print(prompt + ": ");
+            String input = scanner.nextLine().trim();
+
+            if (input.isEmpty()) {
+                return null;
             }
 
             try {

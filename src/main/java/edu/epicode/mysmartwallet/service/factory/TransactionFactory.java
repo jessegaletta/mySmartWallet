@@ -48,60 +48,92 @@ public final class TransactionFactory {
     }
 
     /**
-     * Crea una transazione di tipo INCOME (entrata).
+     * Crea una transazione di tipo INCOME (entrata) con supporto per conversione valutaria.
      *
-     * @param amount      l'importo dell'entrata
-     * @param description la descrizione della transazione
-     * @param categoryId  l'ID della categoria
-     * @param accountId   l'ID del conto
-     * @param date        la data della transazione
+     * @param amount             l'importo dell'entrata (nella valuta del conto)
+     * @param description        la descrizione della transazione
+     * @param categoryId         l'ID della categoria
+     * @param accountId          l'ID del conto
+     * @param date               la data della transazione
+     * @param originalAmount     l'importo originale (null se nessuna conversione)
+     * @param originalCurrencyId l'ID della valuta originale (null se nessuna conversione)
+     * @param exchangeRate       il tasso di cambio usato (null se nessuna conversione)
      * @return la transazione creata
      * @throws InvalidInputException se i parametri non sono validi
      */
     public static Transaction createIncome(BigDecimal amount, String description,
-            int categoryId, int accountId, LocalDate date) throws InvalidInputException {
+            int categoryId, int accountId, LocalDate date,
+            BigDecimal originalAmount, Integer originalCurrencyId, BigDecimal exchangeRate)
+            throws InvalidInputException {
 
         validateInputs(amount, description, categoryId, accountId, date);
 
-        Transaction transaction = new Transaction.Builder()
+        Transaction.Builder builder = new Transaction.Builder()
                 .withId(idCounter.getAndIncrement())
                 .withAmount(amount)
                 .withDescription(description)
                 .withType(TransactionType.INCOME)
                 .withCategoryId(categoryId)
                 .withAccountId(accountId)
-                .withDate(date)
-                .build();
+                .withDate(date);
+
+        if (originalAmount != null) {
+            builder.withOriginalAmount(originalAmount);
+        }
+        if (originalCurrencyId != null) {
+            builder.withOriginalCurrencyId(originalCurrencyId);
+        }
+        if (exchangeRate != null) {
+            builder.withExchangeRate(exchangeRate);
+        }
+
+        Transaction transaction = builder.build();
 
         logger.info("Creata transazione INCOME: " + transaction.getId() + " - " + amount);
         return transaction;
     }
 
     /**
-     * Crea una transazione di tipo EXPENSE (uscita).
+     * Crea una transazione di tipo EXPENSE (uscita) con supporto per conversione valutaria.
      *
-     * @param amount      l'importo dell'uscita
-     * @param description la descrizione della transazione
-     * @param categoryId  l'ID della categoria
-     * @param accountId   l'ID del conto
-     * @param date        la data della transazione
+     * @param amount             l'importo dell'uscita (nella valuta del conto)
+     * @param description        la descrizione della transazione
+     * @param categoryId         l'ID della categoria
+     * @param accountId          l'ID del conto
+     * @param date               la data della transazione
+     * @param originalAmount     l'importo originale (null se nessuna conversione)
+     * @param originalCurrencyId l'ID della valuta originale (null se nessuna conversione)
+     * @param exchangeRate       il tasso di cambio usato (null se nessuna conversione)
      * @return la transazione creata
      * @throws InvalidInputException se i parametri non sono validi
      */
     public static Transaction createExpense(BigDecimal amount, String description,
-            int categoryId, int accountId, LocalDate date) throws InvalidInputException {
+            int categoryId, int accountId, LocalDate date,
+            BigDecimal originalAmount, Integer originalCurrencyId, BigDecimal exchangeRate)
+            throws InvalidInputException {
 
         validateInputs(amount, description, categoryId, accountId, date);
 
-        Transaction transaction = new Transaction.Builder()
+        Transaction.Builder builder = new Transaction.Builder()
                 .withId(idCounter.getAndIncrement())
                 .withAmount(amount)
                 .withDescription(description)
                 .withType(TransactionType.EXPENSE)
                 .withCategoryId(categoryId)
                 .withAccountId(accountId)
-                .withDate(date)
-                .build();
+                .withDate(date);
+
+        if (originalAmount != null) {
+            builder.withOriginalAmount(originalAmount);
+        }
+        if (originalCurrencyId != null) {
+            builder.withOriginalCurrencyId(originalCurrencyId);
+        }
+        if (exchangeRate != null) {
+            builder.withExchangeRate(exchangeRate);
+        }
+
+        Transaction transaction = builder.build();
 
         logger.info("Creata transazione EXPENSE: " + transaction.getId() + " - " + amount);
         return transaction;

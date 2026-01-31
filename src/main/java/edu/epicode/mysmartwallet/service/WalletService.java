@@ -115,19 +115,23 @@ public class WalletService {
     }
 
     /**
-     * Aggiunge una transazione a un conto.
+     * Aggiunge una transazione a un conto con supporto per conversione valutaria.
      *
-     * @param accountId   l'ID del conto
-     * @param type        il tipo di transazione
-     * @param amount      l'importo
-     * @param description la descrizione
-     * @param categoryId  l'ID della categoria
-     * @param date        la data della transazione
-     * @throws ItemNotFoundException  se il conto non esiste
-     * @throws InvalidInputException  se i parametri non sono validi
+     * @param accountId          l'ID del conto
+     * @param type               il tipo di transazione
+     * @param amount             l'importo (nella valuta del conto)
+     * @param description        la descrizione
+     * @param categoryId         l'ID della categoria
+     * @param date               la data della transazione
+     * @param originalAmount     l'importo originale (null se nessuna conversione)
+     * @param originalCurrencyId l'ID della valuta originale (null se nessuna conversione)
+     * @param exchangeRate       il tasso di cambio usato (null se nessuna conversione)
+     * @throws ItemNotFoundException se il conto non esiste
+     * @throws InvalidInputException se i parametri non sono validi
      */
     public void addTransaction(int accountId, TransactionType type, BigDecimal amount,
-            String description, int categoryId, LocalDate date)
+            String description, int categoryId, LocalDate date,
+            BigDecimal originalAmount, Integer originalCurrencyId, BigDecimal exchangeRate)
             throws ItemNotFoundException, InvalidInputException {
 
         Account account = getAccount(accountId);
@@ -136,11 +140,13 @@ public class WalletService {
         switch (type) {
             case INCOME:
                 transaction = TransactionFactory.createIncome(
-                        amount, description, categoryId, accountId, date);
+                        amount, description, categoryId, accountId, date,
+                        originalAmount, originalCurrencyId, exchangeRate);
                 break;
             case EXPENSE:
                 transaction = TransactionFactory.createExpense(
-                        amount, description, categoryId, accountId, date);
+                        amount, description, categoryId, accountId, date,
+                        originalAmount, originalCurrencyId, exchangeRate);
                 break;
             default:
                 throw new InvalidInputException(
@@ -152,60 +158,6 @@ public class WalletService {
         accountRepository.save(account);
 
         logger.info("Transazione " + type + " aggiunta al conto " + accountId);
-    }
-
-    /**
-     * Aggiunge una transazione a un conto con informazioni sulla valuta originale.
-     * Utilizzato quando la transazione viene inserita in una valuta diversa da quella del conto.
-     *
-     * @param accountId          l'ID del conto
-     * @param type               il tipo di transazione
-     * @param amount             l'importo convertito nella valuta del conto
-     * @param description        la descrizione
-     * @param categoryId         l'ID della categoria
-     * @param date               la data della transazione
-     * @param originalAmount     l'importo originale nella valuta di inserimento (null se nessuna conversione)
-     * @param originalCurrencyId l'ID della valuta originale (null se nessuna conversione)
-     * @param exchangeRate       il tasso di cambio usato (null se nessuna conversione)
-     * @throws ItemNotFoundException se il conto non esiste
-     * @throws InvalidInputException se i parametri non sono validi
-     */
-    public void addTransactionWithCurrency(int accountId, TransactionType type, BigDecimal amount,
-            String description, int categoryId, LocalDate date,
-            BigDecimal originalAmount, Integer originalCurrencyId, BigDecimal exchangeRate)
-            throws ItemNotFoundException, InvalidInputException {
-
-        Account account = getAccount(accountId);
-
-        int transactionId = transactionRepository.generateNextId();
-
-        Transaction.Builder builder = new Transaction.Builder()
-                .withId(transactionId)
-                .withAccountId(accountId)
-                .withType(type)
-                .withDate(date)
-                .withAmount(amount)
-                .withDescription(description)
-                .withCategoryId(categoryId);
-
-        // Aggiungi campi valuta se presenti
-        if (originalAmount != null) {
-            builder.withOriginalAmount(originalAmount);
-        }
-        if (originalCurrencyId != null) {
-            builder.withOriginalCurrencyId(originalCurrencyId);
-        }
-        if (exchangeRate != null) {
-            builder.withExchangeRate(exchangeRate);
-        }
-
-        Transaction transaction = builder.build();
-
-        account.addTransaction(transaction);
-        transactionRepository.save(transaction);
-        accountRepository.save(account);
-
-        logger.info("Transazione " + type + " con valuta aggiunta al conto " + accountId);
     }
 
     /**

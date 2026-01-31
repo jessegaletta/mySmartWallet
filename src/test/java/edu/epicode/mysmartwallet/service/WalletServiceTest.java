@@ -4,6 +4,7 @@ import edu.epicode.mysmartwallet.exception.InsufficientFundsException;
 import edu.epicode.mysmartwallet.exception.InvalidInputException;
 import edu.epicode.mysmartwallet.exception.ItemNotFoundException;
 import edu.epicode.mysmartwallet.model.Account;
+import edu.epicode.mysmartwallet.model.Currency;
 import edu.epicode.mysmartwallet.model.TransactionType;
 import edu.epicode.mysmartwallet.model.category.StandardCategory;
 import edu.epicode.mysmartwallet.repository.DataStorage;
@@ -40,9 +41,10 @@ class WalletServiceTest {
         CurrencyManager.resetInstance();
         TransactionFactory.resetIdCounter();
 
-        // Inizializza valute di default
-        CurrencyManager currencyManager = CurrencyManager.getInstance();
-        currencyManager.initializeDefaultCurrencies();
+        // Inizializza valuta EUR manualmente
+        Currency eur = new Currency(1, "EUR", "Euro", "€");
+        eur.addRate(LocalDate.now(), BigDecimal.ONE);
+        DataStorage.getInstance().getCurrencyRepository().save(eur);
 
         // Crea WalletService con strategia a tasso fisso (parità)
         walletService = new WalletService(new FixedExchangeStrategy());
@@ -86,7 +88,8 @@ class WalletServiceTest {
         Account account = walletService.createAccount("Conto", "EUR", MoneyUtil.of("100.00"));
 
         walletService.addTransaction(account.getId(), TransactionType.INCOME,
-                MoneyUtil.of("50.00"), "Stipendio", testCategoryId, testDate);
+                MoneyUtil.of("50.00"), "Stipendio", testCategoryId, testDate,
+                null, null, null);
 
         Account updated = walletService.getAccount(account.getId());
         assertEquals(MoneyUtil.of("150.00"), updated.getBalance());
@@ -99,7 +102,8 @@ class WalletServiceTest {
         Account account = walletService.createAccount("Conto", "EUR", MoneyUtil.of("100.00"));
 
         walletService.addTransaction(account.getId(), TransactionType.EXPENSE,
-                MoneyUtil.of("30.00"), "Spesa", testCategoryId, testDate);
+                MoneyUtil.of("30.00"), "Spesa", testCategoryId, testDate,
+                null, null, null);
 
         Account updated = walletService.getAccount(account.getId());
         assertEquals(MoneyUtil.of("70.00"), updated.getBalance());

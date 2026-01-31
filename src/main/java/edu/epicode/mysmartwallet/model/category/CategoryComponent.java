@@ -1,11 +1,8 @@
 package edu.epicode.mysmartwallet.model.category;
 
 import edu.epicode.mysmartwallet.model.BaseEntity;
-import edu.epicode.mysmartwallet.model.Transaction;
 
-import java.math.BigDecimal;
 import java.util.Iterator;
-import java.util.List;
 
 /**
  * Classe astratta componente del Composite pattern per le categorie.
@@ -99,15 +96,6 @@ public abstract class CategoryComponent extends BaseEntity {
      * @return un Iterator sulle CategoryComponent
      */
     public abstract Iterator<CategoryComponent> iterator();
-
-    /**
-     * Calcola il totale degli importi delle transazioni associate
-     * a questa categoria e a tutte le sue sottocategorie.
-     *
-     * @param transactions la lista di transazioni da analizzare
-     * @return il totale degli importi
-     */
-    public abstract BigDecimal getTotalAmount(List<Transaction> transactions);
 
     @Override
     public String toString() {

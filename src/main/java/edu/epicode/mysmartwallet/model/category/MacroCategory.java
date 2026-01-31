@@ -1,10 +1,7 @@
 package edu.epicode.mysmartwallet.model.category;
 
-import edu.epicode.mysmartwallet.model.Transaction;
 import edu.epicode.mysmartwallet.util.AppLogger;
-import edu.epicode.mysmartwallet.util.MoneyUtil;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -111,33 +108,6 @@ public class MacroCategory extends CategoryComponent {
     @Override
     public Iterator<CategoryComponent> iterator() {
         return new CategoryIterator(this);
-    }
-
-    /**
-     * Calcola il totale delle transazioni per questa categoria
-     * e tutte le sottocategorie in modo ricorsivo.
-     *
-     * @param transactions la lista di transazioni da analizzare
-     * @return la somma totale degli importi
-     */
-    @Override
-    public BigDecimal getTotalAmount(List<Transaction> transactions) {
-        BigDecimal total = MoneyUtil.ZERO;
-
-        // Somma le transazioni direttamente associate a questa macro categoria
-        for (Transaction transaction : transactions) {
-            if (transaction.getCategoryId() == this.id) {
-                total = MoneyUtil.add(total, transaction.getAmount());
-            }
-        }
-
-        // Somma ricorsivamente i totali di tutti i figli
-        for (CategoryComponent child : children) {
-            total = MoneyUtil.add(total, child.getTotalAmount(transactions));
-        }
-
-        logger.fine("Totale calcolato per macro categoria " + name + ": " + total);
-        return total;
     }
 
     /**

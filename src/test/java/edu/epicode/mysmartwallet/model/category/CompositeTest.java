@@ -1,15 +1,9 @@
 package edu.epicode.mysmartwallet.model.category;
 
-import edu.epicode.mysmartwallet.model.Transaction;
-import edu.epicode.mysmartwallet.model.TransactionType;
-import edu.epicode.mysmartwallet.util.MoneyUtil;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -40,7 +34,6 @@ class CompositeTest {
     private StandardCategory ristoranti;
     private StandardCategory supermercato;
     private StandardCategory trasporti;
-    private List<Transaction> transactions;
 
     @BeforeEach
     void setUp() {
@@ -56,52 +49,6 @@ class CompositeTest {
         cibo.addChild(supermercato);
         spese.addChild(cibo);
         spese.addChild(trasporti);
-
-        // Creazione transazioni di test
-        transactions = new ArrayList<>();
-        try {
-            transactions.add(new Transaction.Builder()
-                    .withId(1)
-                    .withDate(LocalDate.now())
-                    .withDescription("Pizza")
-                    .withAmount(MoneyUtil.of("25.00"))
-                    .withType(TransactionType.EXPENSE)
-                    .withCategoryId(3)  // Ristoranti
-                    .withAccountId(1)
-                    .build());
-
-            transactions.add(new Transaction.Builder()
-                    .withId(2)
-                    .withDate(LocalDate.now())
-                    .withDescription("Spesa settimanale")
-                    .withAmount(MoneyUtil.of("80.50"))
-                    .withType(TransactionType.EXPENSE)
-                    .withCategoryId(4)  // Supermercato
-                    .withAccountId(1)
-                    .build());
-
-            transactions.add(new Transaction.Builder()
-                    .withId(3)
-                    .withDate(LocalDate.now())
-                    .withDescription("Benzina")
-                    .withAmount(MoneyUtil.of("50.00"))
-                    .withType(TransactionType.EXPENSE)
-                    .withCategoryId(5)  // Trasporti
-                    .withAccountId(1)
-                    .build());
-
-            transactions.add(new Transaction.Builder()
-                    .withId(4)
-                    .withDate(LocalDate.now())
-                    .withDescription("Cena")
-                    .withAmount(MoneyUtil.of("45.00"))
-                    .withType(TransactionType.EXPENSE)
-                    .withCategoryId(3)  // Ristoranti
-                    .withAccountId(1)
-                    .build());
-        } catch (Exception e) {
-            fail("Errore nella creazione delle transazioni di test: " + e.getMessage());
-        }
     }
 
     @Test
@@ -198,44 +145,6 @@ class CompositeTest {
         // L'output va su System.out e viene verificato manualmente
         assertDoesNotThrow(() -> spese.print(""));
         assertDoesNotThrow(() -> ristoranti.print("  "));
-    }
-
-    @Test
-    @DisplayName("getTotalAmount calcola correttamente per StandardCategory")
-    void testGetTotalAmountStandardCategory() {
-        BigDecimal ristorantiTotal = ristoranti.getTotalAmount(transactions);
-        assertEquals(MoneyUtil.of("70.00"), ristorantiTotal, "Ristoranti: 25 + 45 = 70");
-
-        BigDecimal supermercatoTotal = supermercato.getTotalAmount(transactions);
-        assertEquals(MoneyUtil.of("80.50"), supermercatoTotal, "Supermercato: 80.50");
-
-        BigDecimal trasportiTotal = trasporti.getTotalAmount(transactions);
-        assertEquals(MoneyUtil.of("50.00"), trasportiTotal, "Trasporti: 50");
-    }
-
-    @Test
-    @DisplayName("getTotalAmount calcola somma ricorsiva per MacroCategory")
-    void testGetTotalAmountMacroCategory() {
-        BigDecimal ciboTotal = cibo.getTotalAmount(transactions);
-        assertEquals(MoneyUtil.of("150.50"), ciboTotal, "Cibo: 70 + 80.50 = 150.50");
-
-        BigDecimal speseTotal = spese.getTotalAmount(transactions);
-        assertEquals(MoneyUtil.of("200.50"), speseTotal, "Spese totali: 150.50 + 50 = 200.50");
-    }
-
-    @Test
-    @DisplayName("getTotalAmount con lista vuota restituisce zero")
-    void testGetTotalAmountEmptyList() {
-        BigDecimal total = spese.getTotalAmount(new ArrayList<>());
-        assertEquals(0, total.compareTo(BigDecimal.ZERO), "Il totale deve essere zero");
-    }
-
-    @Test
-    @DisplayName("getTotalAmount con nessuna transazione corrispondente")
-    void testGetTotalAmountNoMatchingTransactions() throws Exception {
-        StandardCategory altraCat = new StandardCategory(999, "Altra", "Desc", null);
-        BigDecimal total = altraCat.getTotalAmount(transactions);
-        assertEquals(0, total.compareTo(BigDecimal.ZERO), "Il totale deve essere zero");
     }
 
     @Test

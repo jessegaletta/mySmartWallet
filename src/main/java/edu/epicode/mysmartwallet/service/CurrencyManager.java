@@ -1,12 +1,10 @@
 package edu.epicode.mysmartwallet.service;
 
 import edu.epicode.mysmartwallet.exception.ItemNotFoundException;
-import edu.epicode.mysmartwallet.exception.RateNotFoundException;
 import edu.epicode.mysmartwallet.model.Currency;
 import edu.epicode.mysmartwallet.repository.DataStorage;
 import edu.epicode.mysmartwallet.repository.Repository;
 import edu.epicode.mysmartwallet.util.AppLogger;
-import edu.epicode.mysmartwallet.util.MoneyUtil;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -178,24 +176,6 @@ public class CurrencyManager {
     }
 
     /**
-     * Restituisce il tasso di cambio di una valuta per una data specifica.
-     *
-     * @param currencyCode il codice della valuta
-     * @param date         la data per cui ottenere il tasso
-     * @return il tasso di cambio rispetto all'EUR
-     * @throws RateNotFoundException se il tasso non è disponibile
-     */
-    public BigDecimal getRate(String currencyCode, LocalDate date) throws RateNotFoundException {
-        try {
-            Currency currency = getCurrencyByCode(currencyCode);
-            return currency.getRateForDate(date);
-        } catch (ItemNotFoundException e) {
-            throw new RateNotFoundException(
-                    "Impossibile ottenere il tasso: valuta " + currencyCode + " non trovata", e);
-        }
-    }
-
-    /**
      * Restituisce tutte le valute nel sistema.
      *
      * @return lista di tutte le valute
@@ -204,43 +184,4 @@ public class CurrencyManager {
         return currencyRepository.findAll();
     }
 
-    /**
-     * Inizializza le valute di default con tassi base.
-     * Crea EUR, USD e GBP se non esistono già.
-     */
-    public void initializeDefaultCurrencies() {
-        LocalDate today = LocalDate.now();
-
-        // EUR già inizializzato come valuta base
-        if (baseCurrency.getRateHistory().isEmpty()) {
-            baseCurrency.addRate(today, BigDecimal.ONE);
-            currencyRepository.save(baseCurrency);
-        }
-
-        // USD
-        try {
-            getCurrencyByCode("USD");
-            logger.fine("USD già presente nel repository");
-        } catch (ItemNotFoundException e) {
-            int usdId = currencyRepository.generateNextId();
-            Currency usd = new Currency(usdId, "USD", "Dollaro Americano", "$");
-            usd.addRate(today, MoneyUtil.of("1.10"));
-            currencyRepository.save(usd);
-            logger.fine("Valuta USD creata con tasso 1.10");
-        }
-
-        // GBP
-        try {
-            getCurrencyByCode("GBP");
-            logger.fine("GBP già presente nel repository");
-        } catch (ItemNotFoundException e) {
-            int gbpId = currencyRepository.generateNextId();
-            Currency gbp = new Currency(gbpId, "GBP", "Sterlina Britannica", "£");
-            gbp.addRate(today, MoneyUtil.of("0.86"));
-            currencyRepository.save(gbp);
-            logger.fine("Valuta GBP creata con tasso 0.86");
-        }
-
-        logger.info("Valute di default inizializzate");
-    }
 }
