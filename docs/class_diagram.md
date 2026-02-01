@@ -99,7 +99,7 @@ classDiagram
         +build() Transaction
     }
 
-    Transaction +-- Builder : creates
+    Transaction ..> Builder : inner class
 ```
 
 ### Composite Pattern (Categories)
@@ -146,7 +146,7 @@ classDiagram
     CategoryComponent <|-- MacroCategory
     CategoryComponent <|-- StandardCategory
     MacroCategory "1" --> "*" CategoryComponent : children
-    MacroCategory +-- CategoryIterator
+    MacroCategory ..> CategoryIterator : inner class
 ```
 
 ## Package repository
