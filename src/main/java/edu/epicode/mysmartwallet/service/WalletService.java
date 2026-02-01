@@ -216,6 +216,8 @@ public class WalletService {
             } else {
                 // Conversione automatica con la strategia
                 finalToAmount = exchangeStrategy.convert(fromAmount, fromCurrency, toCurrency, date);
+                // Calcola il tasso effettivamente applicato per salvarlo nella transazione
+                exchangeRate = MoneyUtil.divideRates(finalToAmount, fromAmount);
             }
         } else {
             finalToAmount = fromAmount;
@@ -241,8 +243,8 @@ public class WalletService {
                 .withDescription(description + " (trasferimento da " + fromAccount.getName() + ")")
                 .withCategoryId(categoryId);
 
-        // Se valute diverse e importo manuale, registra info sulla conversione
-        if (differentCurrencies && toAmount != null) {
+        // Se valute diverse, registra info sulla conversione
+        if (differentCurrencies) {
             incomingBuilder.withOriginalAmount(fromAmount);
             incomingBuilder.withOriginalCurrencyId(fromCurrency.getId());
             incomingBuilder.withExchangeRate(exchangeRate);
@@ -364,5 +366,124 @@ public class WalletService {
         accountRepository.save(account);
 
         logger.info("Eliminata transazione " + transactionId + " dal conto " + account.getName());
+    }
+
+    /**
+     * Verifica se un conto puo' essere eliminato.
+     *
+     * @param accountId l'ID del conto
+     * @return risultato della verifica con eventuali dettagli sul blocco
+     */
+    public DeleteAccountResult canDeleteAccount(int accountId) {
+        try {
+            Account account = getAccount(accountId);
+            int transactionCount = account.getTransactions().size();
+
+            if (transactionCount > 0) {
+                return new DeleteAccountResult(false,
+                        "Il conto ha " + transactionCount + " transazioni associate");
+            }
+
+            return new DeleteAccountResult(true, null);
+        } catch (ItemNotFoundException e) {
+            return new DeleteAccountResult(false, "Conto non trovato");
+        }
+    }
+
+    /**
+     * Elimina un conto.
+     *
+     * @param accountId l'ID del conto da eliminare
+     * @throws ItemNotFoundException  se il conto non esiste
+     * @throws InvalidInputException  se il conto non puo' essere eliminato
+     */
+    public void deleteAccount(int accountId) throws ItemNotFoundException, InvalidInputException {
+        DeleteAccountResult check = canDeleteAccount(accountId);
+        if (!check.canDelete()) {
+            throw new InvalidInputException("Impossibile eliminare: " + check.getReason());
+        }
+
+        Account account = getAccount(accountId);
+        String accountName = account.getName();
+
+        accountRepository.delete(accountId);
+
+        logger.info("Eliminato conto: " + accountName + " (ID: " + accountId + ")");
+    }
+
+    /**
+     * Calcola l'impatto sul saldo di un conto dopo l'eliminazione di una transazione.
+     *
+     * @param transactionId l'ID della transazione
+     * @return risultato con saldo attuale e saldo previsto dopo eliminazione
+     * @throws ItemNotFoundException se la transazione o il conto non esistono
+     */
+    public TransactionImpact calculateDeleteTransactionImpact(int transactionId)
+            throws ItemNotFoundException {
+
+        Transaction transaction = getTransaction(transactionId);
+        Account account = getAccount(transaction.getAccountId());
+
+        BigDecimal currentBalance = account.getBalance();
+        BigDecimal balanceChange;
+
+        if (transaction.getType() == TransactionType.INCOME) {
+            balanceChange = transaction.getAmount().negate();
+        } else {
+            balanceChange = transaction.getAmount();
+        }
+
+        BigDecimal expectedBalance = MoneyUtil.add(currentBalance, balanceChange);
+
+        return new TransactionImpact(currentBalance, expectedBalance, balanceChange);
+    }
+
+    /**
+     * Risultato della verifica di eliminabilita' di un conto.
+     */
+    public static class DeleteAccountResult {
+        private final boolean canDelete;
+        private final String reason;
+
+        public DeleteAccountResult(boolean canDelete, String reason) {
+            this.canDelete = canDelete;
+            this.reason = reason;
+        }
+
+        public boolean canDelete() {
+            return canDelete;
+        }
+
+        public String getReason() {
+            return reason;
+        }
+    }
+
+    /**
+     * Risultato del calcolo dell'impatto di una transazione sul saldo.
+     */
+    public static class TransactionImpact {
+        private final BigDecimal currentBalance;
+        private final BigDecimal expectedBalance;
+        private final BigDecimal balanceChange;
+
+        public TransactionImpact(BigDecimal currentBalance, BigDecimal expectedBalance,
+                BigDecimal balanceChange) {
+            this.currentBalance = currentBalance;
+            this.expectedBalance = expectedBalance;
+            this.balanceChange = balanceChange;
+        }
+
+        public BigDecimal getCurrentBalance() {
+            return currentBalance;
+        }
+
+        public BigDecimal getExpectedBalance() {
+            return expectedBalance;
+        }
+
+        public BigDecimal getBalanceChange() {
+            return balanceChange;
+        }
     }
 }

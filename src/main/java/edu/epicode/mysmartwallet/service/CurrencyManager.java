@@ -1,14 +1,17 @@
 package edu.epicode.mysmartwallet.service;
 
 import edu.epicode.mysmartwallet.exception.ItemNotFoundException;
+import edu.epicode.mysmartwallet.exception.RateNotFoundException;
 import edu.epicode.mysmartwallet.model.Currency;
 import edu.epicode.mysmartwallet.repository.DataStorage;
 import edu.epicode.mysmartwallet.repository.Repository;
 import edu.epicode.mysmartwallet.util.AppLogger;
+import edu.epicode.mysmartwallet.util.MoneyUtil;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 /**
@@ -184,4 +187,138 @@ public class CurrencyManager {
         return currencyRepository.findAll();
     }
 
+    /**
+     * Cerca una valuta per ID.
+     *
+     * @param currencyId l'ID della valuta
+     * @return la valuta corrispondente
+     * @throws ItemNotFoundException se la valuta non esiste
+     */
+    public Currency getCurrencyById(int currencyId) throws ItemNotFoundException {
+        return currencyRepository.findById(currencyId)
+                .orElseThrow(() -> new ItemNotFoundException(
+                        "Valuta con ID " + currencyId + " non trovata"));
+    }
+
+    /**
+     * Cerca una valuta per ID, restituendo un Optional.
+     *
+     * @param currencyId l'ID della valuta
+     * @return Optional con la valuta se trovata
+     */
+    public Optional<Currency> findCurrencyById(int currencyId) {
+        return currencyRepository.findById(currencyId);
+    }
+
+    /**
+     * Converte un importo da una valuta a un'altra usando i tassi storici.
+     *
+     * @param amount       l'importo da convertire
+     * @param fromCurrency la valuta di origine
+     * @param toCurrency   la valuta di destinazione
+     * @param date         la data per il tasso di cambio
+     * @return l'importo convertito
+     * @throws RateNotFoundException se il tasso non e' disponibile
+     */
+    public BigDecimal convert(BigDecimal amount, Currency fromCurrency,
+            Currency toCurrency, LocalDate date) throws RateNotFoundException {
+
+        if (fromCurrency.getId() == toCurrency.getId()) {
+            return amount;
+        }
+
+        BigDecimal rateFrom = fromCurrency.getRateForDate(date);
+        BigDecimal rateTo = toCurrency.getRateForDate(date);
+        BigDecimal exchangeRate = MoneyUtil.divideRates(rateFrom, rateTo);
+
+        return MoneyUtil.multiplyByRate(amount, exchangeRate);
+    }
+
+    /**
+     * Calcola il tasso di cambio tra due valute per una data specifica.
+     *
+     * @param fromCurrency la valuta di origine
+     * @param toCurrency   la valuta di destinazione
+     * @param date         la data per il tasso
+     * @return il tasso di cambio
+     * @throws RateNotFoundException se il tasso non e' disponibile
+     */
+    public BigDecimal getExchangeRate(Currency fromCurrency, Currency toCurrency, LocalDate date)
+            throws RateNotFoundException {
+
+        if (fromCurrency.getId() == toCurrency.getId()) {
+            return BigDecimal.ONE;
+        }
+
+        BigDecimal rateFrom = fromCurrency.getRateForDate(date);
+        BigDecimal rateTo = toCurrency.getRateForDate(date);
+
+        return MoneyUtil.divideRates(rateFrom, rateTo);
+    }
+
+    /**
+     * Verifica se una valuta puo' essere eliminata.
+     *
+     * @param currencyId l'ID della valuta
+     * @return risultato della verifica con eventuali dettagli sul blocco
+     */
+    public DeleteCurrencyResult canDelete(int currencyId) {
+        Optional<Currency> currencyOpt = currencyRepository.findById(currencyId);
+
+        if (currencyOpt.isEmpty()) {
+            return new DeleteCurrencyResult(false, "Valuta non trovata");
+        }
+
+        Currency currency = currencyOpt.get();
+
+        // Verifica che non sia EUR
+        if (currency.getCode().equals(BASE_CURRENCY_CODE)) {
+            return new DeleteCurrencyResult(false, "Impossibile eliminare la valuta base EUR");
+        }
+
+        DataStorage storage = DataStorage.getInstance();
+
+        // Verifica se usata in qualche conto
+        long accountCount = storage.getAccountRepository().findAll().stream()
+                .filter(a -> a.getCurrencyId() == currencyId)
+                .count();
+
+        if (accountCount > 0) {
+            return new DeleteCurrencyResult(false,
+                    "La valuta e' usata in " + accountCount + " conti");
+        }
+
+        // Verifica se usata in qualche transazione (originalCurrencyId)
+        long transactionCount = storage.getTransactionRepository().findAll().stream()
+                .filter(t -> t.getOriginalCurrencyId() != null && t.getOriginalCurrencyId() == currencyId)
+                .count();
+
+        if (transactionCount > 0) {
+            return new DeleteCurrencyResult(false,
+                    "La valuta e' usata in " + transactionCount + " transazioni");
+        }
+
+        return new DeleteCurrencyResult(true, null);
+    }
+
+    /**
+     * Risultato della verifica di eliminabilita' di una valuta.
+     */
+    public static class DeleteCurrencyResult {
+        private final boolean canDelete;
+        private final String reason;
+
+        public DeleteCurrencyResult(boolean canDelete, String reason) {
+            this.canDelete = canDelete;
+            this.reason = reason;
+        }
+
+        public boolean canDelete() {
+            return canDelete;
+        }
+
+        public String getReason() {
+            return reason;
+        }
+    }
 }

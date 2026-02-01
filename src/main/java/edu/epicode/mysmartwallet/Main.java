@@ -12,6 +12,7 @@ import edu.epicode.mysmartwallet.persistence.CsvService;
 import edu.epicode.mysmartwallet.persistence.generator.DemoDataGenerator;
 import edu.epicode.mysmartwallet.persistence.generator.EmptyDataGenerator;
 import edu.epicode.mysmartwallet.repository.DataStorage;
+import edu.epicode.mysmartwallet.service.CategoryService;
 import edu.epicode.mysmartwallet.service.CurrencyManager;
 import edu.epicode.mysmartwallet.service.ReportService;
 import edu.epicode.mysmartwallet.service.WalletService;
@@ -61,6 +62,7 @@ public class Main {
     private static WalletService walletService;
     private static ReportService reportService;
     private static CurrencyManager currencyManager;
+    private static CategoryService categoryService;
     private static boolean running = true;
 
     /**
@@ -136,6 +138,7 @@ public class Main {
         walletService = new WalletService(new HistoricalExchangeStrategy());
         reportService = new ReportService();
         currencyManager = CurrencyManager.getInstance();
+        categoryService = new CategoryService();
 
         walletService.addGlobalObserver(new ConsoleBalanceObserver());
 
@@ -345,11 +348,10 @@ public class Main {
             return;
         }
 
-        // Verifica se ha transazioni
-        int transactionCount = account.getTransactions().size();
-        if (transactionCount > 0) {
-            System.out.printf("%nImpossibile eliminare: il conto '%s' ha %d transazioni associate.%n",
-                    account.getName(), transactionCount);
+        // Verifica se puo' essere eliminato
+        WalletService.DeleteAccountResult check = walletService.canDeleteAccount(accountId);
+        if (!check.canDelete()) {
+            System.out.printf("%nImpossibile eliminare: %s%n", check.getReason());
             System.out.println("Elimina prima tutte le transazioni del conto.");
             return;
         }
@@ -369,8 +371,8 @@ public class Main {
             return;
         }
 
-        // Elimina il conto
-        DataStorage.getInstance().getAccountRepository().delete(accountId);
+        // Elimina il conto tramite servizio
+        walletService.deleteAccount(accountId);
         System.out.printf("%nConto '%s' eliminato con successo!%n", account.getName());
     }
 
@@ -486,19 +488,12 @@ public class Main {
         System.out.printf("Importo:     %s %s%n", MoneyUtil.format(transaction.getAmount(), ""), symbol);
         System.out.printf("Descrizione: %s%n", transaction.getDescription());
 
-        // Mostra il saldo attuale e quello previsto dopo la cancellazione
-        BigDecimal currentBalance = account.getBalance();
-        BigDecimal balanceChange;
-        if (transaction.getType() == TransactionType.INCOME) {
-            balanceChange = transaction.getAmount().negate();
-        } else {
-            balanceChange = transaction.getAmount();
-        }
-        BigDecimal expectedBalance = MoneyUtil.add(currentBalance, balanceChange);
+        // Calcola l'impatto sul saldo tramite servizio
+        WalletService.TransactionImpact impact = walletService.calculateDeleteTransactionImpact(transactionId);
 
         System.out.println("\n--- Impatto sul saldo ---");
-        System.out.printf("Saldo attuale:         %s %s%n", MoneyUtil.format(currentBalance, ""), symbol);
-        System.out.printf("Saldo dopo eliminazione: %s %s%n", MoneyUtil.format(expectedBalance, ""), symbol);
+        System.out.printf("Saldo attuale:         %s %s%n", MoneyUtil.format(impact.getCurrentBalance(), ""), symbol);
+        System.out.printf("Saldo dopo eliminazione: %s %s%n", MoneyUtil.format(impact.getExpectedBalance(), ""), symbol);
 
         // Chiedi conferma
         if (!readYesNo("\nConfermi l'eliminazione? (s/n)")) {
@@ -572,8 +567,7 @@ public class Main {
         String description = readString("Descrizione");
 
         System.out.println("\nSeleziona la categoria:");
-        List<CategoryComponent> categories = DataStorage.getInstance()
-                .getCategoryRepository().findAll();
+        List<CategoryComponent> categories = categoryService.getAllCategories();
         printCategoryList(categories);
         int categoryId = readInt("ID Categoria");
 
@@ -940,10 +934,7 @@ public class Main {
         LocalDate to = readDateOptional("Data fine (yyyy-MM-dd, invio per nessun limite)");
 
         if (accountId == 0) {
-            BigDecimal total = BigDecimal.ZERO;
-            for (Account acc : accounts) {
-                total = MoneyUtil.add(total, reportService.getTotalExpenses(acc.getId(), from, to));
-            }
+            BigDecimal total = reportService.getTotalExpensesAllAccounts(from, to);
             System.out.printf("%nTotale spese (tutti i conti): %s EUR%n", MoneyUtil.format(total, ""));
         } else {
             BigDecimal total = reportService.getTotalExpenses(accountId, from, to);
@@ -956,10 +947,7 @@ public class Main {
         LocalDate to = readDateOptional("Data fine (yyyy-MM-dd, invio per nessun limite)");
 
         if (accountId == 0) {
-            BigDecimal total = BigDecimal.ZERO;
-            for (Account acc : accounts) {
-                total = MoneyUtil.add(total, reportService.getTotalIncome(acc.getId(), from, to));
-            }
+            BigDecimal total = reportService.getTotalIncomeAllAccounts(from, to);
             System.out.printf("%nTotale entrate (tutti i conti): %s EUR%n", MoneyUtil.format(total, ""));
         } else {
             BigDecimal total = reportService.getTotalIncome(accountId, from, to);
@@ -975,29 +963,20 @@ public class Main {
         System.out.println("--------------------------------------");
 
         Map<Integer, CategoryComponent> categoryMap = new java.util.HashMap<>();
-        DataStorage.getInstance().getCategoryRepository().findAll()
-                .forEach(c -> categoryMap.put(c.getId(), c));
+        categoryService.getAllCategories().forEach(c -> categoryMap.put(c.getId(), c));
 
+        Map<Integer, BigDecimal> expenses;
         if (accountId == 0) {
-            Map<Integer, BigDecimal> totals = new java.util.HashMap<>();
-            for (Account acc : accounts) {
-                Map<Integer, BigDecimal> expenses = reportService.getExpensesByCategory(acc.getId(), from, to);
-                expenses.forEach((catId, amt) ->
-                        totals.merge(catId, amt, MoneyUtil::add));
-            }
-            totals.forEach((catId, amt) -> {
-                String catName = categoryMap.containsKey(catId) ?
-                        categoryMap.get(catId).getName() : "Sconosciuta";
-                System.out.printf("  %-20s: %s EUR%n", catName, MoneyUtil.format(amt, ""));
-            });
+            expenses = reportService.getExpensesByCategoryAllAccounts(from, to);
         } else {
-            Map<Integer, BigDecimal> expenses = reportService.getExpensesByCategory(accountId, from, to);
-            expenses.forEach((catId, amt) -> {
-                String catName = categoryMap.containsKey(catId) ?
-                        categoryMap.get(catId).getName() : "Sconosciuta";
-                System.out.printf("  %-20s: %s EUR%n", catName, MoneyUtil.format(amt, ""));
-            });
+            expenses = reportService.getExpensesByCategory(accountId, from, to);
         }
+
+        expenses.forEach((catId, amt) -> {
+            String catName = categoryMap.containsKey(catId) ?
+                    categoryMap.get(catId).getName() : "Sconosciuta";
+            System.out.printf("  %-20s: %s EUR%n", catName, MoneyUtil.format(amt, ""));
+        });
     }
 
     private static void reportTransactionsByPeriod(int accountId, List<Account> accounts) {
@@ -1080,8 +1059,7 @@ public class Main {
         System.out.println("\nAlbero delle categorie:");
         System.out.println("======================================");
 
-        List<CategoryComponent> categories = DataStorage.getInstance()
-                .getCategoryRepository().findAll();
+        List<CategoryComponent> categories = categoryService.getAllCategories();
 
         for (CategoryComponent category : categories) {
             if (category.getParentId() == null) {
@@ -1104,45 +1082,36 @@ public class Main {
         String parentInput = readString("ID Parent (vuoto per radice)");
 
         Integer parentId = null;
-        CategoryComponent parentCategory = null;
 
         if (!parentInput.trim().isEmpty()) {
             try {
-                int inputId = Integer.parseInt(parentInput.trim());
-                Optional<CategoryComponent> parentOpt = DataStorage.getInstance()
-                        .getCategoryRepository().findById(inputId);
-
-                if (parentOpt.isEmpty()) {
-                    System.out.println("Categoria parent non trovata, categoria creata come radice.");
-                } else if (parentOpt.get().isLeaf()) {
-                    System.out.println("La categoria selezionata e' una foglia e non puo' avere figli.");
-                    System.out.println("Categoria creata come radice.");
-                } else {
-                    parentId = inputId;
-                    parentCategory = parentOpt.get();
-                }
+                parentId = Integer.parseInt(parentInput.trim());
             } catch (NumberFormatException e) {
                 System.out.println("ID non valido, categoria creata come radice.");
+                parentId = null;
             }
         }
 
-        int newId = DataStorage.getInstance().getCategoryRepository().generateNextId();
-
-        CategoryComponent newCategory;
-        if (type == 1) {
-            newCategory = new MacroCategory(newId, name, description, parentId);
-        } else {
-            newCategory = new edu.epicode.mysmartwallet.model.category.StandardCategory(
-                    newId, name, description, parentId);
+        try {
+            CategoryComponent newCategory;
+            if (type == 1) {
+                newCategory = categoryService.createMacroCategory(name, description, parentId);
+            } else {
+                newCategory = categoryService.createStandardCategory(name, description, parentId);
+            }
+            System.out.println("\nCategoria '" + name + "' creata con ID: " + newCategory.getId());
+        } catch (WalletException e) {
+            System.out.println("Errore: " + e.getMessage());
+            System.out.println("Categoria creata come radice.");
+            // Riprova senza parent
+            CategoryComponent newCategory;
+            if (type == 1) {
+                newCategory = categoryService.createMacroCategory(name, description, null);
+            } else {
+                newCategory = categoryService.createStandardCategory(name, description, null);
+            }
+            System.out.println("\nCategoria '" + name + "' creata con ID: " + newCategory.getId());
         }
-
-        DataStorage.getInstance().getCategoryRepository().save(newCategory);
-
-        if (parentCategory != null) {
-            ((MacroCategory) parentCategory).addChild(newCategory);
-        }
-
-        System.out.println("\nCategoria '" + name + "' creata con ID: " + newId);
     }
 
     /**
@@ -1160,9 +1129,8 @@ public class Main {
             return;
         }
 
-        DataStorage storage = DataStorage.getInstance();
-        Optional<CategoryComponent> categoryOpt = storage.getCategoryRepository().findById(categoryId);
-
+        // Verifica se la categoria esiste
+        Optional<CategoryComponent> categoryOpt = categoryService.findCategory(categoryId);
         if (categoryOpt.isEmpty()) {
             System.out.println("Categoria non trovata.");
             return;
@@ -1170,25 +1138,10 @@ public class Main {
 
         CategoryComponent category = categoryOpt.get();
 
-        // Verifica se ha figli (solo per MacroCategory)
-        if (category instanceof MacroCategory) {
-            MacroCategory macro = (MacroCategory) category;
-            if (!macro.getChildren().isEmpty()) {
-                System.out.println("Impossibile eliminare: la categoria ha " +
-                        macro.getChildren().size() + " sottocategorie collegate.");
-                System.out.println("Elimina prima le sottocategorie.");
-                return;
-            }
-        }
-
-        // Verifica se ci sono transazioni che usano questa categoria
-        long transactionCount = storage.getTransactionRepository().findAll().stream()
-                .filter(t -> t.getCategoryId() == categoryId)
-                .count();
-
-        if (transactionCount > 0) {
-            System.out.println("Impossibile eliminare: la categoria e' usata in " +
-                    transactionCount + " transazioni.");
+        // Verifica se puo' essere eliminata
+        CategoryService.DeleteCheckResult check = categoryService.canDelete(categoryId);
+        if (!check.canDelete()) {
+            System.out.println("Impossibile eliminare: " + check.getReason());
             return;
         }
 
@@ -1199,19 +1152,8 @@ public class Main {
             return;
         }
 
-        // Rimuovi dal parent se presente
-        Integer parentId = category.getParentId();
-        if (parentId != null) {
-            storage.getCategoryRepository().findById(parentId).ifPresent(parent -> {
-                if (parent instanceof MacroCategory) {
-                    ((MacroCategory) parent).removeChild(categoryId);
-                    logger.fine("Rimosso riferimento al figlio " + categoryId + " dal parent " + parentId);
-                }
-            });
-        }
-
-        // Elimina dal repository
-        storage.getCategoryRepository().delete(categoryId);
+        // Elimina tramite servizio
+        categoryService.deleteCategory(categoryId);
 
         System.out.println("\nCategoria '" + category.getName() + "' eliminata con successo.");
     }
@@ -1357,44 +1299,18 @@ public class Main {
         }
 
         // Verifica che la valuta esista
-        List<Currency> currencies = currencyManager.getAllCurrencies();
-        Currency currency = currencies.stream()
-                .filter(c -> c.getId() == currencyId)
-                .findFirst()
-                .orElse(null);
-
-        if (currency == null) {
+        Optional<Currency> currencyOpt = currencyManager.findCurrencyById(currencyId);
+        if (currencyOpt.isEmpty()) {
             System.out.println("Valuta non trovata.");
             return;
         }
 
-        // Verifica che non sia EUR
-        if (currency.getCode().equals("EUR")) {
-            System.out.println("Impossibile eliminare la valuta base EUR.");
-            return;
-        }
+        Currency currency = currencyOpt.get();
 
-        DataStorage storage = DataStorage.getInstance();
-
-        // Verifica se usata in qualche conto
-        long accountCount = storage.getAccountRepository().findAll().stream()
-                .filter(a -> a.getCurrencyId() == currencyId)
-                .count();
-
-        if (accountCount > 0) {
-            System.out.println("Impossibile eliminare: la valuta e' usata in " +
-                    accountCount + " conti.");
-            return;
-        }
-
-        // Verifica se usata in qualche transazione (originalCurrencyId)
-        long transactionCount = storage.getTransactionRepository().findAll().stream()
-                .filter(t -> t.getOriginalCurrencyId() != null && t.getOriginalCurrencyId() == currencyId)
-                .count();
-
-        if (transactionCount > 0) {
-            System.out.println("Impossibile eliminare: la valuta e' usata in " +
-                    transactionCount + " transazioni.");
+        // Verifica se puo' essere eliminata
+        CurrencyManager.DeleteCurrencyResult check = currencyManager.canDelete(currencyId);
+        if (!check.canDelete()) {
+            System.out.println("Impossibile eliminare: " + check.getReason());
             return;
         }
 
@@ -1577,13 +1493,6 @@ public class Main {
      * Recupera la valuta associata a un account.
      */
     private static Currency getCurrencyForAccount(Account account) {
-        try {
-            return currencyManager.getAllCurrencies().stream()
-                    .filter(c -> c.getId() == account.getCurrencyId())
-                    .findFirst()
-                    .orElse(null);
-        } catch (Exception e) {
-            return null;
-        }
+        return currencyManager.findCurrencyById(account.getCurrencyId()).orElse(null);
     }
 }

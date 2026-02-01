@@ -78,6 +78,8 @@ public class Currency extends BaseEntity {
      */
     public BigDecimal getLatestRate() {
         if (rateHistory.isEmpty()) {
+            logger.warning("Nessun tasso storico disponibile per " + code +
+                    ", ritorno valore di fallback 1.0");
             return BigDecimal.ONE;
         }
         return rateHistory.lastEntry().getValue();

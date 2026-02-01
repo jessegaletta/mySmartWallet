@@ -119,51 +119,24 @@ class TransactionTest {
     }
 
     @Test
-    @DisplayName("Transaction e' immutabile - getDate non modifica stato")
-    void testImmutabilityGetDate() throws InvalidInputException {
-        LocalDate originalDate = LocalDate.of(2024, 1, 15);
+    @DisplayName("Transaction e' immutabile - getter restituiscono sempre gli stessi valori")
+    void testImmutability() throws InvalidInputException {
+        LocalDate originalDate = LocalDate.of(2024, 6, 15);
+        BigDecimal originalAmount = new BigDecimal("250.00");
 
-        Transaction transaction = new Transaction.Builder()
-                .withId(1)
-                .withDate(originalDate)
-                .withAmount(new BigDecimal("100.00"))
-                .withType(TransactionType.EXPENSE)
-                .build();
-
-        LocalDate retrievedDate = transaction.getDate();
-        assertEquals(originalDate, retrievedDate);
-        assertEquals(originalDate, transaction.getDate());
-    }
-
-    @Test
-    @DisplayName("Transaction e' immutabile - getAmount non modifica stato")
-    void testImmutabilityGetAmount() throws InvalidInputException {
-        BigDecimal originalAmount = new BigDecimal("100.00");
-
-        Transaction transaction = new Transaction.Builder()
-                .withId(1)
-                .withDate(LocalDate.now())
-                .withAmount(originalAmount)
-                .withType(TransactionType.INCOME)
-                .build();
-
-        BigDecimal retrievedAmount = transaction.getAmount();
-        assertEquals(originalAmount, retrievedAmount);
-        assertEquals(originalAmount, transaction.getAmount());
-    }
-
-    @Test
-    @DisplayName("Transaction e' immutabile - chiamate successive getters restituiscono stessi valori")
-    void testImmutabilityMultipleGetterCalls() throws InvalidInputException {
         Transaction transaction = new Transaction.Builder()
                 .withId(5)
-                .withDate(LocalDate.of(2024, 6, 15))
-                .withAmount(new BigDecimal("250.00"))
+                .withDate(originalDate)
+                .withAmount(originalAmount)
                 .withType(TransactionType.TRANSFER)
                 .withDescription("Trasferimento test")
                 .withCategoryId(20)
                 .withAccountId(2)
                 .build();
+
+        // Verifica che i valori originali siano preservati
+        assertEquals(originalDate, transaction.getDate());
+        assertEquals(originalAmount, transaction.getAmount());
 
         // Chiamate multiple ai getter devono restituire gli stessi valori
         assertEquals(transaction.getId(), transaction.getId());
@@ -171,8 +144,6 @@ class TransactionTest {
         assertEquals(transaction.getAmount(), transaction.getAmount());
         assertEquals(transaction.getType(), transaction.getType());
         assertEquals(transaction.getDescription(), transaction.getDescription());
-        assertEquals(transaction.getCategoryId(), transaction.getCategoryId());
-        assertEquals(transaction.getAccountId(), transaction.getAccountId());
     }
 
     @Test

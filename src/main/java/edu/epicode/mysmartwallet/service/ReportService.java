@@ -1,5 +1,6 @@
 package edu.epicode.mysmartwallet.service;
 
+import edu.epicode.mysmartwallet.exception.ItemNotFoundException;
 import edu.epicode.mysmartwallet.exception.RateNotFoundException;
 import edu.epicode.mysmartwallet.model.Account;
 import edu.epicode.mysmartwallet.model.Currency;
@@ -13,6 +14,7 @@ import edu.epicode.mysmartwallet.util.MoneyUtil;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -62,7 +64,7 @@ public class ReportService {
      * @return l'importo convertito in EUR
      */
     private BigDecimal convertToEur(BigDecimal amount, Currency currency, LocalDate date) {
-        if (currency == null || currency.getCode().equals("EUR")) {
+        if (currency.getCode().equals("EUR")) {
             return amount;
         }
         try {
@@ -77,12 +79,17 @@ public class ReportService {
 
     /**
      * Recupera la valuta associata a un account.
+     *
+     * @param account l'account di cui recuperare la valuta
+     * @return la valuta associata
+     * @throws ItemNotFoundException se la valuta non esiste
      */
-    private Currency getCurrencyForAccount(Account account) {
+    private Currency getCurrencyForAccount(Account account) throws ItemNotFoundException {
         return currencyManager.getAllCurrencies().stream()
                 .filter(c -> c.getId() == account.getCurrencyId())
                 .findFirst()
-                .orElse(null);
+                .orElseThrow(() -> new ItemNotFoundException(
+                        "Valuta con ID " + account.getCurrencyId() + " non trovata per il conto " + account.getName()));
     }
 
     /**
@@ -117,7 +124,13 @@ public class ReportService {
             return BigDecimal.ZERO;
         }
 
-        Currency currency = getCurrencyForAccount(account);
+        Currency currency;
+        try {
+            currency = getCurrencyForAccount(account);
+        } catch (ItemNotFoundException e) {
+            logger.warning("Impossibile calcolare uscite per conto " + accountId + ": " + e.getMessage());
+            return BigDecimal.ZERO;
+        }
 
         BigDecimal total = account.getTransactions().stream()
                 .filter(t -> t.getType() == TransactionType.EXPENSE)
@@ -143,7 +156,13 @@ public class ReportService {
             return BigDecimal.ZERO;
         }
 
-        Currency currency = getCurrencyForAccount(account);
+        Currency currency;
+        try {
+            currency = getCurrencyForAccount(account);
+        } catch (ItemNotFoundException e) {
+            logger.warning("Impossibile calcolare entrate per conto " + accountId + ": " + e.getMessage());
+            return BigDecimal.ZERO;
+        }
 
         BigDecimal total = account.getTransactions().stream()
                 .filter(t -> t.getType() == TransactionType.INCOME)
@@ -169,7 +188,13 @@ public class ReportService {
             return Map.of();
         }
 
-        Currency currency = getCurrencyForAccount(account);
+        Currency currency;
+        try {
+            currency = getCurrencyForAccount(account);
+        } catch (ItemNotFoundException e) {
+            logger.warning("Impossibile calcolare spese per categoria per conto " + accountId + ": " + e.getMessage());
+            return Map.of();
+        }
 
         Map<Integer, BigDecimal> result = account.getTransactions().stream()
                 .filter(t -> t.getType() == TransactionType.EXPENSE)
@@ -236,5 +261,63 @@ public class ReportService {
         return accountRepository.findById(accountId)
                 .map(Account::getTransactions)
                 .orElse(List.of());
+    }
+
+    // ==================== METODI AGGREGATI SU TUTTI I CONTI ====================
+
+    /**
+     * Calcola il totale delle uscite su tutti i conti in un periodo, convertito in EUR.
+     *
+     * @param from la data di inizio (inclusa), null per nessun limite
+     * @param to   la data di fine (inclusa), null per nessun limite
+     * @return il totale delle uscite in EUR
+     */
+    public BigDecimal getTotalExpensesAllAccounts(LocalDate from, LocalDate to) {
+        BigDecimal total = BigDecimal.ZERO;
+
+        for (Account account : accountRepository.findAll()) {
+            total = MoneyUtil.add(total, getTotalExpenses(account.getId(), from, to));
+        }
+
+        logger.fine("Totale uscite tutti i conti (EUR): " + total);
+        return total;
+    }
+
+    /**
+     * Calcola il totale delle entrate su tutti i conti in un periodo, convertito in EUR.
+     *
+     * @param from la data di inizio (inclusa), null per nessun limite
+     * @param to   la data di fine (inclusa), null per nessun limite
+     * @return il totale delle entrate in EUR
+     */
+    public BigDecimal getTotalIncomeAllAccounts(LocalDate from, LocalDate to) {
+        BigDecimal total = BigDecimal.ZERO;
+
+        for (Account account : accountRepository.findAll()) {
+            total = MoneyUtil.add(total, getTotalIncome(account.getId(), from, to));
+        }
+
+        logger.fine("Totale entrate tutti i conti (EUR): " + total);
+        return total;
+    }
+
+    /**
+     * Raggruppa le uscite per categoria su tutti i conti in un periodo, convertite in EUR.
+     *
+     * @param from la data di inizio (inclusa), null per nessun limite
+     * @param to   la data di fine (inclusa), null per nessun limite
+     * @return mappa con ID categoria come chiave e totale spese in EUR come valore
+     */
+    public Map<Integer, BigDecimal> getExpensesByCategoryAllAccounts(LocalDate from, LocalDate to) {
+        Map<Integer, BigDecimal> totals = new HashMap<>();
+
+        for (Account account : accountRepository.findAll()) {
+            Map<Integer, BigDecimal> expenses = getExpensesByCategory(account.getId(), from, to);
+            expenses.forEach((catId, amt) ->
+                    totals.merge(catId, amt, MoneyUtil::add));
+        }
+
+        logger.fine("Spese per categoria tutti i conti calcolate (EUR)");
+        return totals;
     }
 }

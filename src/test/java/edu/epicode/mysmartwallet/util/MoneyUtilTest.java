@@ -67,33 +67,19 @@ class MoneyUtilTest {
     }
 
     @Test
-    @DisplayName("isPositive ritorna true per importi positivi")
-    void testIsPositiveTrue() {
+    @DisplayName("isPositive verifica correttamente importi positivi, zero e negativi")
+    void testIsPositive() {
         assertTrue(MoneyUtil.isPositive(MoneyUtil.of("100.00")));
-    }
-
-    @Test
-    @DisplayName("isPositive ritorna false per zero")
-    void testIsPositiveZero() {
         assertFalse(MoneyUtil.isPositive(BigDecimal.ZERO));
-    }
-
-    @Test
-    @DisplayName("isPositive ritorna false per importi negativi")
-    void testIsPositiveNegative() {
         assertFalse(MoneyUtil.isPositive(MoneyUtil.of("-100.00")));
     }
 
     @Test
-    @DisplayName("isNegative ritorna true per importi negativi")
-    void testIsNegativeTrue() {
+    @DisplayName("isNegative verifica correttamente importi negativi e positivi")
+    void testIsNegative() {
         assertTrue(MoneyUtil.isNegative(MoneyUtil.of("-50.00")));
-    }
-
-    @Test
-    @DisplayName("isNegative ritorna false per importi positivi")
-    void testIsNegativeFalse() {
         assertFalse(MoneyUtil.isNegative(MoneyUtil.of("50.00")));
+        assertFalse(MoneyUtil.isNegative(BigDecimal.ZERO));
     }
 
     @Test

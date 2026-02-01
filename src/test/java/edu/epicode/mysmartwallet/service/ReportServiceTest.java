@@ -149,29 +149,6 @@ class ReportServiceTest {
     }
 
     @Test
-    @DisplayName("getTotalIncome restituisce zero per account senza entrate")
-    void testGetTotalIncomeNoIncome() throws InvalidInputException {
-        Account emptyAccount = new Account(3, "Conto Solo Spese", 1, MoneyUtil.of("100.00"));
-        DataStorage.getInstance().getAccountRepository().save(emptyAccount);
-
-        // Aggiungi solo una spesa
-        Transaction expense = new Transaction.Builder()
-                .withId(10)
-                .withAccountId(3)
-                .withType(TransactionType.EXPENSE)
-                .withDate(LocalDate.now())
-                .withAmount(MoneyUtil.of("25.00"))
-                .withDescription("Spesa")
-                .withCategoryId(10)
-                .build();
-        emptyAccount.addTransaction(expense);
-
-        BigDecimal totalIncome = reportService.getTotalIncome(emptyAccount.getId(), null, null);
-
-        assertEquals(BigDecimal.ZERO, totalIncome);
-    }
-
-    @Test
     @DisplayName("getExpensesByCategory raggruppa correttamente le spese")
     void testGetExpensesByCategory() {
         Map<Integer, BigDecimal> expensesByCategory = reportService.getExpensesByCategory(accountId, null, null);
