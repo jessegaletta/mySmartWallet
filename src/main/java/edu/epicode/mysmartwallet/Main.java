@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Scanner;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -78,7 +79,7 @@ public class Main {
             initialize();
             runMainLoop();
         } catch (Exception e) {
-            AppLogger.error("Errore critico nell'applicazione", e);
+            logger.log(Level.SEVERE, "Errore critico nell'applicazione", e);
             System.out.println("\nSi e' verificato un errore imprevisto. Controlla i log per dettagli.");
         } finally {
             if (scanner != null) {
@@ -130,7 +131,7 @@ public class Main {
                     System.out.println("Database vuoto inizializzato.");
                 }
             } catch (WalletException ex) {
-                AppLogger.error("Errore durante la generazione dei dati", ex);
+                logger.log(Level.SEVERE, "Errore durante la generazione dei dati", ex);
                 System.out.println("Errore durante la generazione dei dati iniziali.");
             }
         }
@@ -180,7 +181,7 @@ public class Main {
                 logger.warning("Errore operazione: " + e.getMessage());
             } catch (Exception e) {
                 System.out.println("Si e' verificato un errore. Riprova.");
-                AppLogger.error("Errore imprevisto nel menu", e);
+                logger.log(Level.SEVERE, "Errore imprevisto nel menu", e);
             }
         }
 

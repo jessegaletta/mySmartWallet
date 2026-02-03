@@ -10,8 +10,7 @@ import java.util.logging.*;
 
 /**
  * Wrapper per java.util.logging.Logger.
- * Fornisce metodi statici per la configurazione e l'utilizzo del logging
- * nell'applicazione MySmartWallet.
+ * Fornisce configurazione centralizzata del logging per l'applicazione MySmartWallet.
  *
  * <p>Il formato dei log è: [DATA] [LIVELLO] [CLASSE] - messaggio</p>
  *
@@ -87,51 +86,6 @@ public final class AppLogger {
             setup();
         }
         return Logger.getLogger(clazz.getName());
-    }
-
-    /**
-     * Registra un messaggio di errore con l'eccezione associata.
-     *
-     * @param msg il messaggio di errore
-     * @param e   l'eccezione da registrare
-     */
-    public static void error(String msg, Exception e) {
-        Logger logger = Logger.getLogger(getCallerClassName());
-        logger.log(Level.SEVERE, msg, e);
-    }
-
-    /**
-     * Registra un messaggio informativo.
-     *
-     * @param msg il messaggio da registrare
-     */
-    public static void info(String msg) {
-        Logger logger = Logger.getLogger(getCallerClassName());
-        logger.info(msg);
-    }
-
-    /**
-     * Registra un messaggio di avviso.
-     *
-     * @param msg il messaggio da registrare
-     */
-    public static void warning(String msg) {
-        Logger logger = Logger.getLogger(getCallerClassName());
-        logger.warning(msg);
-    }
-
-    /**
-     * Ottiene il nome della classe chiamante.
-     *
-     * @return il nome completo della classe chiamante
-     */
-    private static String getCallerClassName() {
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        // 0: getStackTrace, 1: getCallerClassName, 2: info/error/warning, 3: caller
-        if (stackTrace.length > 3) {
-            return stackTrace[3].getClassName();
-        }
-        return AppLogger.class.getName();
     }
 
     /**
