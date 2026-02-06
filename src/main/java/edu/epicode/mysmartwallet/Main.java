@@ -371,7 +371,7 @@ public class Main {
         System.out.printf("Valuta:         %s%n", currency != null ? currency.getCode() : "N/D");
         System.out.printf("Saldo iniziale: %s %s%n", MoneyUtil.format(account.getInitialBalance(), ""), symbol);
 
-        if (!readYesNo("\nConfermi l'eliminazione? (s/n)")) {
+        if (!readYesNo("\nConfermi l'eliminazione?")) {
             System.out.println("Operazione annullata.");
             return;
         }
@@ -501,7 +501,7 @@ public class Main {
         System.out.printf("Saldo dopo eliminazione: %s %s%n", MoneyUtil.format(impact.getExpectedBalance(), ""), symbol);
 
         // Chiedi conferma
-        if (!readYesNo("\nConfermi l'eliminazione? (s/n)")) {
+        if (!readYesNo("\nConfermi l'eliminazione?")) {
             System.out.println("Operazione annullata.");
             return;
         }
@@ -1152,7 +1152,7 @@ public class Main {
 
         // Conferma eliminazione
         System.out.println("\nStai per eliminare la categoria: " + category.getName());
-        if (!readYesNo("Confermi l'eliminazione? (s/n)")) {
+        if (!readYesNo("Confermi l'eliminazione?")) {
             System.out.println("Operazione annullata.");
             return;
         }
@@ -1322,7 +1322,7 @@ public class Main {
         // Conferma eliminazione
         System.out.println("\nStai per eliminare la valuta: " + currency.getCode() +
                 " (" + currency.getName() + ")");
-        if (!readYesNo("Confermi l'eliminazione? (s/n)")) {
+        if (!readYesNo("Confermi l'eliminazione?")) {
             System.out.println("Operazione annullata.");
             return;
         }

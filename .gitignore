@@ -17,3 +17,6 @@ logs/
 .DS_Store
 Thumbs.db
 **/.DS_Store
+
+# Data
+data/
