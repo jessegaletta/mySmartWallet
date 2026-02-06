@@ -11,14 +11,14 @@ import java.util.logging.Logger;
 /**
  * Implementazione della strategia di conversione con tasso fisso.
  *
- * <p>Questa strategia ignora i tassi storici e utilizza sempre un tasso
+ * Questa strategia ignora i tassi storici e utilizza sempre un tasso
  * di cambio predefinito. È particolarmente utile per:
  * <ul>
  *   <li>Test unitari deterministici</li>
  *   <li>Simulazioni con tassi controllati</li>
  *   <li>Scenari di parità valutaria (tasso 1.0)</li>
  * </ul>
- * </p>
+ * 
  *
  * @author Jesse Galetta
  * @version 1.0
@@ -54,12 +54,12 @@ public class FixedExchangeStrategy implements ExchangeStrategy {
     /**
      * {@inheritDoc}
      *
-     * <p>Questa implementazione ignora completamente i tassi storici
+     * Questa implementazione ignora completamente i tassi storici
      * delle valute e la data specificata, applicando sempre il tasso fisso
-     * configurato nel costruttore.</p>
+     * configurato nel costruttore.
      *
-     * <p>Se le due valute sono uguali (stesso codice), restituisce l'importo
-     * originale senza applicare il tasso.</p>
+     * Se le due valute sono uguali (stesso codice), restituisce l'importo
+     * originale senza applicare il tasso.
      */
     @Override
     public BigDecimal convert(BigDecimal amount, Currency from, Currency to, LocalDate date) {

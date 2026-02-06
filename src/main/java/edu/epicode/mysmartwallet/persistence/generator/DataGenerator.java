@@ -9,15 +9,15 @@ import java.util.logging.Logger;
 /**
  * Classe astratta che implementa il Template Method pattern per la generazione dei dati.
  *
- * <p>Il Template Method pattern definisce lo scheletro di un algoritmo nella classe base,
+ * Il Template Method pattern definisce lo scheletro di un algoritmo nella classe base,
  * delegando alcuni passaggi alle sottoclassi. Questo permette alle sottoclassi di ridefinire
- * determinati passi dell'algoritmo senza modificarne la struttura complessiva.</p>
+ * determinati passi dell'algoritmo senza modificarne la struttura complessiva.
  *
- * <p>In questo caso, il metodo template {@link #generate()} definisce l'ordine in cui
+ * In questo caso, il metodo template {@link #generate()} definisce l'ordine in cui
  * i dati devono essere creati (valute, categorie, account, dati popolati),
- * mentre le implementazioni concrete determinano quali dati specifici creare.</p>
+ * mentre le implementazioni concrete determinano quali dati specifici creare.
  *
- * <p>Le sottoclassi concrete sono:</p>
+ * Le sottoclassi concrete sono:
  * <ul>
  *   <li>{@link DemoDataGenerator} - genera dati di esempio per test e demo</li>
  *   <li>{@link EmptyDataGenerator} - genera solo la struttura minima necessaria</li>
@@ -46,7 +46,7 @@ public abstract class DataGenerator {
      * Metodo template che definisce l'algoritmo di generazione dei dati.
      * Questo metodo è final e non può essere sovrascritto dalle sottoclassi.
      *
-     * <p>L'ordine delle operazioni è:
+     * L'ordine delle operazioni è:
      * <ol>
      *   <li>Creazione delle valute ({@link #createCurrencies()})</li>
      *   <li>Creazione delle categorie ({@link #createCategories()})</li>
@@ -54,7 +54,7 @@ public abstract class DataGenerator {
      *   <li>Popolazione dei dati aggiuntivi ({@link #populateData()})</li>
      *   <li>Salvataggio su file ({@link #saveData()})</li>
      * </ol>
-     * </p>
+     * 
      *
      * @throws StorageException se si verifica un errore durante la generazione o il salvataggio
      */

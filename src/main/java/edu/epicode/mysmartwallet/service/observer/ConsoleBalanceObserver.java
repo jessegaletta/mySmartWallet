@@ -11,16 +11,16 @@ import java.util.logging.Logger;
 /**
  * Implementazione dell'Observer che notifica le variazioni di saldo sulla console.
  *
- * <p>Questa classe implementa il pattern Observer per mostrare messaggi
- * informativi e di warning quando il saldo di un conto cambia.</p>
+ * Questa classe implementa il pattern Observer per mostrare messaggi
+ * informativi e di warning quando il saldo di un conto cambia.
  *
- * <p>Funzionalità:
+ * Funzionalità:
  * <ul>
  *   <li>Stampa a console quando il saldo viene aggiornato</li>
  *   <li>Mostra un warning se il saldo diventa negativo</li>
  *   <li>Notifica quando viene aggiunta una nuova transazione</li>
  * </ul>
- * </p>
+ * 
  *
  * @author Jesse Galetta
  * @version 1.0
@@ -39,8 +39,8 @@ public class ConsoleBalanceObserver implements BalanceObserver {
     /**
      * {@inheritDoc}
      *
-     * <p>Stampa a console il cambiamento di saldo e genera un warning
-     * se il nuovo saldo è negativo.</p>
+     * Stampa a console il cambiamento di saldo e genera un warning
+     * se il nuovo saldo è negativo.
      */
     @Override
     public void onBalanceChanged(Account account, BigDecimal oldBalance, BigDecimal newBalance) {
@@ -62,7 +62,7 @@ public class ConsoleBalanceObserver implements BalanceObserver {
     /**
      * {@inheritDoc}
      *
-     * <p>Stampa a console i dettagli della nuova transazione.</p>
+     * Stampa a console i dettagli della nuova transazione.
      */
     @Override
     public void onTransactionAdded(Account account, Transaction transaction) {

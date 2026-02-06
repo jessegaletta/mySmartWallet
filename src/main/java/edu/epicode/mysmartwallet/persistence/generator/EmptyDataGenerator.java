@@ -15,7 +15,7 @@ import java.util.logging.Logger;
 /**
  * Generatore di dati vuoto con struttura minima.
  *
- * <p>Questa classe estende {@link DataGenerator} e implementa il Template Method pattern
+ * Questa classe estende {@link DataGenerator} e implementa il Template Method pattern
  * per creare solo la struttura minima necessaria al funzionamento del sistema:
  * <ul>
  *   <li>Solo la valuta base EUR</li>
@@ -23,10 +23,10 @@ import java.util.logging.Logger;
  *   <li>Nessun account pre-configurato</li>
  *   <li>Nessuna transazione</li>
  * </ul>
- * </p>
+ * 
  *
- * <p>Utile per inizializzare un nuovo database pulito dove l'utente
- * creerà i propri dati da zero.</p>
+ * Utile per inizializzare un nuovo database pulito dove l'utente
+ * creerà i propri dati da zero.
  *
  * @author Jesse Galetta
  * @version 1.0

@@ -20,7 +20,7 @@ import java.util.logging.Logger;
 /**
  * Generatore di dati demo per test e dimostrazioni.
  *
- * <p>Questa classe estende {@link DataGenerator} e implementa il Template Method pattern
+ * Questa classe estende {@link DataGenerator} e implementa il Template Method pattern
  * per creare un set completo di dati di esempio, inclusi:
  * <ul>
  *   <li>Tre valute: EUR, USD, GBP con tassi di cambio</li>
@@ -28,7 +28,7 @@ import java.util.logging.Logger;
  *   <li>Tre conti esempio in valute diverse</li>
  *   <li>Transazioni di esempio per l'ultimo mese</li>
  * </ul>
- * </p>
+ * 
  *
  * @author Jesse Galetta
  * @version 1.0

@@ -13,8 +13,8 @@ import java.util.logging.Logger;
  * Categoria macro (composite) nel Composite pattern.
  * Rappresenta una categoria che può contenere sottocategorie.
  *
- * <p>Le MacroCategory sono i nodi interni dell'albero delle categorie
- * e possono contenere sia altre MacroCategory che StandardCategory.</p>
+ * Le MacroCategory sono i nodi interni dell'albero delle categorie
+ * e possono contenere sia altre MacroCategory che StandardCategory.
  *
  * @author Jesse Galetta
  * @version 1.0

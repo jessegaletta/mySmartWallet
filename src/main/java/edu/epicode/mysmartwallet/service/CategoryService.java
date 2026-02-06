@@ -18,14 +18,14 @@ import java.util.logging.Logger;
 /**
  * Servizio per la gestione delle categorie.
  *
- * <p>Fornisce le funzionalità per la gestione delle categorie gerarchiche:
+ * Fornisce le funzionalità per la gestione delle categorie gerarchiche:
  * <ul>
  *   <li>Creazione di macro-categorie e categorie standard</li>
  *   <li>Gestione delle relazioni parent-child</li>
  *   <li>Eliminazione con verifica vincoli</li>
  *   <li>Ricerca e navigazione dell'albero</li>
  * </ul>
- * </p>
+ * 
  *
  * @author Jesse Galetta
  * @version 1.0
@@ -250,15 +250,31 @@ public class CategoryService {
         private final boolean canDelete;
         private final String reason;
 
+        /**
+         * Costruisce un nuovo risultato di verifica.
+         *
+         * @param canDelete true se la categoria puo' essere eliminata
+         * @param reason    motivazione del risultato
+         */
         public DeleteCheckResult(boolean canDelete, String reason) {
             this.canDelete = canDelete;
             this.reason = reason;
         }
 
+        /**
+         * Indica se la categoria puo' essere eliminata.
+         *
+         * @return true se eliminabile, false altrimenti
+         */
         public boolean canDelete() {
             return canDelete;
         }
 
+        /**
+         * Restituisce la motivazione del risultato.
+         *
+         * @return descrizione del motivo
+         */
         public String getReason() {
             return reason;
         }

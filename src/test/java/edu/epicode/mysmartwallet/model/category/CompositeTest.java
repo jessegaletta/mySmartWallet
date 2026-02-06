@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Test per il Composite pattern delle categorie.
  * Verifica il corretto funzionamento di MacroCategory e StandardCategory.
  *
- * <p>Struttura test:
+ * Struttura test:
  * <pre>
  * Spese (Macro, id=1)
  * ├── Cibo (Macro, id=2)
@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * │   └── Supermercato (Standard, id=4)
  * └── Trasporti (Standard, id=5)
  * </pre>
- * </p>
+ * 
  *
  * @author Jesse Galetta
  * @version 1.0

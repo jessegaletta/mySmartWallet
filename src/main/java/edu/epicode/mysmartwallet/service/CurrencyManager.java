@@ -17,11 +17,11 @@ import java.util.logging.Logger;
 /**
  * Singleton per la gestione centralizzata delle valute.
  *
- * <p>Fornisce accesso alle operazioni sulle valute, inclusa la gestione
- * della valuta base (EUR) e l'aggiornamento dei tassi di cambio storici.</p>
+ * Fornisce accesso alle operazioni sulle valute, inclusa la gestione
+ * della valuta base (EUR) e l'aggiornamento dei tassi di cambio storici.
  *
- * <p>Implementa il pattern Singleton con lazy initialization e sincronizzazione
- * per garantire thread-safety.</p>
+ * Implementa il pattern Singleton con lazy initialization e sincronizzazione
+ * per garantire thread-safety.
  *
  * @author Jesse Galetta
  * @version 1.0
@@ -308,15 +308,31 @@ public class CurrencyManager {
         private final boolean canDelete;
         private final String reason;
 
+        /**
+         * Costruisce un nuovo risultato di verifica.
+         *
+         * @param canDelete true se la valuta puo' essere eliminata
+         * @param reason    motivazione del risultato
+         */
         public DeleteCurrencyResult(boolean canDelete, String reason) {
             this.canDelete = canDelete;
             this.reason = reason;
         }
 
+        /**
+         * Indica se la valuta puo' essere eliminata.
+         *
+         * @return true se eliminabile, false altrimenti
+         */
         public boolean canDelete() {
             return canDelete;
         }
 
+        /**
+         * Restituisce la motivazione del risultato.
+         *
+         * @return descrizione del motivo
+         */
         public String getReason() {
             return reason;
         }

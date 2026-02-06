@@ -23,17 +23,17 @@ import java.util.stream.Collectors;
 /**
  * Servizio per la generazione di report finanziari.
  *
- * <p>Utilizza intensivamente la Stream API di Java per elaborare
- * e aggregare i dati delle transazioni in modo efficiente e dichiarativo.</p>
+ * Utilizza intensivamente la Stream API di Java per elaborare
+ * e aggregare i dati delle transazioni in modo efficiente e dichiarativo.
  *
- * <p>Funzionalità disponibili:
+ * Funzionalità disponibili:
  * <ul>
  *   <li>Calcolo totali entrate/uscite</li>
  *   <li>Raggruppamento spese per categoria</li>
  *   <li>Filtraggio transazioni per periodo</li>
  *   <li>Ricerca per descrizione</li>
  * </ul>
- * </p>
+ * 
  *
  * @author Jesse Galetta
  * @version 1.0

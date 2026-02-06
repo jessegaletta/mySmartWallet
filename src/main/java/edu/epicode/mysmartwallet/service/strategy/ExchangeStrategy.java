@@ -9,16 +9,16 @@ import java.time.LocalDate;
 /**
  * Interfaccia per il pattern Strategy applicato alla conversione valutaria.
  *
- * <p>Il pattern Strategy permette di definire una famiglia di algoritmi
+ * Il pattern Strategy permette di definire una famiglia di algoritmi
  * di conversione intercambiabili. Questo consente di variare l'algoritmo
- * indipendentemente dal client che lo utilizza.</p>
+ * indipendentemente dal client che lo utilizza.
  *
- * <p>Implementazioni tipiche includono:
+ * Implementazioni tipiche includono:
  * <ul>
  *   <li>{@link HistoricalExchangeStrategy} - usa tassi storici dalle valute</li>
  *   <li>{@link FixedExchangeStrategy} - usa un tasso fisso per testing</li>
  * </ul>
- * </p>
+ * 
  *
  * @author Jesse Galetta
  * @version 1.0

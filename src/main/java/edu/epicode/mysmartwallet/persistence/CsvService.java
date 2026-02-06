@@ -33,8 +33,8 @@ import java.util.logging.Logger;
  * Servizio per la persistenza dei dati su file CSV.
  * Gestisce la lettura e scrittura di account, transazioni, categorie e valute.
  *
- * <p>Utilizza il separatore ";" per i campi CSV e la codifica UTF-8
- * per garantire la corretta gestione dei caratteri speciali.</p>
+ * Utilizza il separatore ";" per i campi CSV e la codifica UTF-8
+ * per garantire la corretta gestione dei caratteri speciali.
  *
  * @author Jesse Galetta
  * @version 1.0

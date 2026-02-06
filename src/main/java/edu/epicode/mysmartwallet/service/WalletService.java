@@ -26,17 +26,17 @@ import java.util.logging.Logger;
 /**
  * Servizio principale per la gestione dei conti e delle operazioni finanziarie.
  *
- * <p>Fornisce le funzionalità core dell'applicazione:
+ * Fornisce le funzionalità core dell'applicazione:
  * <ul>
  *   <li>Creazione e gestione conti</li>
  *   <li>Aggiunta transazioni (entrate, uscite)</li>
  *   <li>Trasferimenti tra conti con conversione valuta</li>
  *   <li>Calcolo saldo totale multi-valuta</li>
  * </ul>
- * </p>
+ * 
  *
- * <p>Utilizza dependency injection per la strategia di conversione valuta,
- * permettendo di configurare diverse strategie a runtime.</p>
+ * Utilizza dependency injection per la strategia di conversione valuta,
+ * permettendo di configurare diverse strategie a runtime.
  *
  * @author Jesse Galetta
  * @version 1.0
@@ -163,10 +163,10 @@ public class WalletService {
     /**
      * Esegue un trasferimento tra due conti.
      *
-     * <p>Se i conti hanno valute diverse e toAmount e' specificato,
+     * Se i conti hanno valute diverse e toAmount e' specificato,
      * viene usato quell'importo per il conto destinazione e il tasso
      * viene calcolato dal rapporto toAmount/fromAmount.
-     * Se toAmount e' null, viene usata la strategia di cambio configurata.</p>
+     * Se toAmount e' null, viene usata la strategia di cambio configurata.
      *
      * @param fromAccountId l'ID del conto sorgente
      * @param toAccountId   l'ID del conto destinazione
@@ -445,15 +445,31 @@ public class WalletService {
         private final boolean canDelete;
         private final String reason;
 
+        /**
+         * Costruisce un nuovo risultato di verifica.
+         *
+         * @param canDelete true se il conto puo' essere eliminato
+         * @param reason    motivazione del risultato
+         */
         public DeleteAccountResult(boolean canDelete, String reason) {
             this.canDelete = canDelete;
             this.reason = reason;
         }
 
+        /**
+         * Indica se il conto puo' essere eliminato.
+         *
+         * @return true se eliminabile, false altrimenti
+         */
         public boolean canDelete() {
             return canDelete;
         }
 
+        /**
+         * Restituisce la motivazione del risultato.
+         *
+         * @return descrizione del motivo
+         */
         public String getReason() {
             return reason;
         }
@@ -467,6 +483,13 @@ public class WalletService {
         private final BigDecimal expectedBalance;
         private final BigDecimal balanceChange;
 
+        /**
+         * Costruisce un nuovo oggetto impatto transazione.
+         *
+         * @param currentBalance  saldo attuale del conto
+         * @param expectedBalance saldo previsto dopo la transazione
+         * @param balanceChange   variazione di saldo
+         */
         public TransactionImpact(BigDecimal currentBalance, BigDecimal expectedBalance,
                 BigDecimal balanceChange) {
             this.currentBalance = currentBalance;
@@ -474,14 +497,29 @@ public class WalletService {
             this.balanceChange = balanceChange;
         }
 
+        /**
+         * Restituisce il saldo attuale del conto.
+         *
+         * @return saldo corrente
+         */
         public BigDecimal getCurrentBalance() {
             return currentBalance;
         }
 
+        /**
+         * Restituisce il saldo previsto dopo la transazione.
+         *
+         * @return saldo atteso
+         */
         public BigDecimal getExpectedBalance() {
             return expectedBalance;
         }
 
+        /**
+         * Restituisce la variazione di saldo causata dalla transazione.
+         *
+         * @return differenza tra saldo atteso e attuale
+         */
         public BigDecimal getBalanceChange() {
             return balanceChange;
         }

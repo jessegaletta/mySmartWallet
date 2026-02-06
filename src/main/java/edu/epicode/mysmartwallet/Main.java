@@ -39,7 +39,7 @@ import java.util.logging.Logger;
  * Classe principale dell'applicazione MySmartWallet.
  * Fornisce un'interfaccia CLI interattiva per la gestione della contabilità personale.
  *
- * <p>Funzionalità disponibili:
+ * Funzionalità disponibili:
  * <ul>
  *   <li>Riepilogo conti e saldi</li>
  *   <li>Gestione transazioni (entrate, uscite, trasferimenti)</li>
@@ -48,12 +48,16 @@ import java.util.logging.Logger;
  *   <li>Gestione valute e tassi di cambio</li>
  *   <li>Persistenza dati su file CSV</li>
  * </ul>
- * </p>
+ * 
  *
  * @author Jesse Galetta
  * @version 1.0
  */
 public class Main {
+
+    /** Costruttore privato per prevenire istanziazione. */
+    private Main() {
+    }
 
     private static final Logger logger = AppLogger.getLogger(Main.class);
 

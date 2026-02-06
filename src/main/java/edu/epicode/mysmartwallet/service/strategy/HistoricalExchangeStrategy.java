@@ -12,11 +12,11 @@ import java.util.logging.Logger;
 /**
  * Implementazione della strategia di conversione basata sui tassi storici.
  *
- * <p>Questa strategia utilizza i tassi di cambio memorizzati nelle entità
+ * Questa strategia utilizza i tassi di cambio memorizzati nelle entità
  * Currency per effettuare conversioni accurate basate sulla data specificata.
- * I tassi sono tutti espressi rispetto all'EUR come valuta base.</p>
+ * I tassi sono tutti espressi rispetto all'EUR come valuta base.
  *
- * <p>Formula di conversione: amount * (tassoFrom / tassoTo)</p>
+ * Formula di conversione: amount * (tassoFrom / tassoTo)
  *
  * @author Jesse Galetta
  * @version 1.0
@@ -35,16 +35,16 @@ public class HistoricalExchangeStrategy implements ExchangeStrategy {
     /**
      * {@inheritDoc}
      *
-     * <p>Se le due valute sono uguali (stesso codice), restituisce l'importo
-     * originale senza effettuare conversioni.</p>
+     * Se le due valute sono uguali (stesso codice), restituisce l'importo
+     * originale senza effettuare conversioni.
      *
-     * <p>La conversione avviene tramite l'EUR come valuta pivot:
+     * La conversione avviene tramite l'EUR come valuta pivot:
      * <ol>
      *   <li>Recupera il tasso della valuta di origine rispetto all'EUR</li>
      *   <li>Recupera il tasso della valuta di destinazione rispetto all'EUR</li>
      *   <li>Calcola: importo * (tassoOrigine / tassoDestinazione)</li>
      * </ol>
-     * </p>
+     * 
      */
     @Override
     public BigDecimal convert(BigDecimal amount, Currency from, Currency to, LocalDate date)

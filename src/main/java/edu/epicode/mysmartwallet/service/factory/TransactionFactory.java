@@ -16,17 +16,17 @@ import java.util.logging.Logger;
 /**
  * Factory per la creazione di transazioni finanziarie.
  *
- * <p>Implementa il pattern Factory Method per centralizzare la logica
+ * Implementa il pattern Factory Method per centralizzare la logica
  * di creazione delle transazioni, garantendo validazione degli input
- * e generazione automatica degli ID.</p>
+ * e generazione automatica degli ID.
  *
- * <p>Questa classe fornisce metodi statici per creare:
+ * Questa classe fornisce metodi statici per creare:
  * <ul>
  *   <li>Entrate (INCOME)</li>
  *   <li>Uscite (EXPENSE)</li>
  *   <li>Trasferimenti tra conti (coppia di TRANSFER)</li>
  * </ul>
- * </p>
+ * 
  *
  * @author Jesse Galetta
  * @version 1.0
@@ -142,12 +142,12 @@ public final class TransactionFactory {
     /**
      * Crea un trasferimento tra due conti.
      *
-     * <p>Un trasferimento genera due transazioni di tipo TRANSFER:
+     * Un trasferimento genera due transazioni di tipo TRANSFER:
      * <ol>
      *   <li>Una transazione di uscita sul conto sorgente</li>
      *   <li>Una transazione di entrata sul conto destinazione</li>
      * </ol>
-     * </p>
+     * 
      *
      * @param amount        l'importo del trasferimento
      * @param description   la descrizione del trasferimento

@@ -10,8 +10,8 @@ import java.util.logging.Logger;
  * Categoria standard (foglia) nel Composite pattern.
  * Rappresenta una categoria terminale senza sottocategorie.
  *
- * <p>Le StandardCategory sono le foglie dell'albero delle categorie
- * e possono essere assegnate direttamente alle transazioni.</p>
+ * Le StandardCategory sono le foglie dell'albero delle categorie
+ * e possono essere assegnate direttamente alle transazioni.
  *
  * @author Jesse Galetta
  * @version 1.0

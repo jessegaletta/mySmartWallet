@@ -9,8 +9,8 @@ import java.util.Iterator;
  * Definisce l'interfaccia comune per categorie foglia (StandardCategory)
  * e categorie composite (MacroCategory).
  *
- * <p>Le categorie possono essere organizzate in una struttura gerarchica
- * ad albero per classificare le transazioni finanziarie.</p>
+ * Le categorie possono essere organizzate in una struttura gerarchica
+ * ad albero per classificare le transazioni finanziarie.
  *
  * @author Jesse Galetta
  * @version 1.0

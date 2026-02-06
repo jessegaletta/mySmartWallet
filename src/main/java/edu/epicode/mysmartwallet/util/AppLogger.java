@@ -12,7 +12,7 @@ import java.util.logging.*;
  * Wrapper per java.util.logging.Logger.
  * Fornisce configurazione centralizzata del logging per l'applicazione MySmartWallet.
  *
- * <p>Il formato dei log è: [DATA] [LIVELLO] [CLASSE] - messaggio</p>
+ * Il formato dei log è: [DATA] [LIVELLO] [CLASSE] - messaggio
  *
  * @author Jesse Galetta
  * @version 1.0

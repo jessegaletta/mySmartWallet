@@ -7,8 +7,8 @@ import java.math.RoundingMode;
  * Classe utility per operazioni sicure su importi monetari.
  * Utilizza BigDecimal per garantire precisione nei calcoli finanziari.
  *
- * <p>Tutte le operazioni rispettano la scala e l'arrotondamento configurati
- * per evitare errori di precisione tipici dei tipi floating-point.</p>
+ * Tutte le operazioni rispettano la scala e l'arrotondamento configurati
+ * per evitare errori di precisione tipici dei tipi floating-point.
  *
  * @author Jesse Galetta
  * @version 1.0

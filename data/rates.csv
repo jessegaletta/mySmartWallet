@@ -1,7 +1,0 @@
-CurrencyID;Code;Name;Symbol;Date;Rate
-1;EUR;Euro;€;2026-01-02;1
-1;EUR;Euro;€;2026-02-01;1
-2;USD;Dollaro Americano;$;2026-01-02;1.08
-2;USD;Dollaro Americano;$;2026-02-01;1.10
-3;GBP;Sterlina Britannica;£;2026-01-02;0.85
-3;GBP;Sterlina Britannica;£;2026-02-01;0.86

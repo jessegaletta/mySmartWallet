@@ -8,26 +8,26 @@ import java.math.BigDecimal;
 /**
  * Interfaccia per il pattern Observer applicato alle variazioni di saldo.
  *
- * <p>Il pattern Observer definisce una dipendenza uno-a-molti tra oggetti,
+ * Il pattern Observer definisce una dipendenza uno-a-molti tra oggetti,
  * in modo che quando un oggetto (il Subject, in questo caso Account) cambia
- * stato, tutti i suoi dipendenti (Observer) vengono notificati automaticamente.</p>
+ * stato, tutti i suoi dipendenti (Observer) vengono notificati automaticamente.
  *
- * <p>Questo pattern permette di:
+ * Questo pattern permette di:
  * <ul>
  *   <li>Disaccoppiare il Subject dagli Observer</li>
  *   <li>Supportare la comunicazione broadcast</li>
  *   <li>Aggiungere/rimuovere Observer a runtime</li>
  * </ul>
- * </p>
+ * 
  *
- * <p>Implementazioni tipiche possono:
+ * Implementazioni tipiche possono:
  * <ul>
  *   <li>Mostrare notifiche a console ({@link ConsoleBalanceObserver})</li>
  *   <li>Inviare alert via email o notifiche push</li>
  *   <li>Aggiornare interfacce grafiche</li>
  *   <li>Registrare eventi in un sistema di audit</li>
  * </ul>
- * </p>
+ * 
  *
  * @author Jesse Galetta
  * @version 1.0
