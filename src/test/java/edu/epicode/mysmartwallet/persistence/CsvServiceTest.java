@@ -55,14 +55,20 @@ class CsvServiceTest {
     }
 
     @AfterEach
-    void tearDown() throws StorageException {
-        // Ripristina i dati originali
+    void tearDown() throws StorageException, IOException {
         DataStorage.resetInstance();
+
+        // Ripristina i dati originali o elimina i file di test
         if (!originalAccounts.isEmpty()) {
             CsvService.saveAccounts(originalAccounts);
+        } else {
+            Files.deleteIfExists(Path.of("data/accounts.csv"));
         }
+
         if (!originalTransactions.isEmpty()) {
             CsvService.saveTransactions(originalTransactions);
+        } else {
+            Files.deleteIfExists(Path.of("data/transactions.csv"));
         }
     }
 
