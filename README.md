@@ -131,13 +131,15 @@ edu.epicode.mysmartwallet/
 
 ### Comandi
 
-| Comando | Descrizione |
+| Comando * | Descrizione |
 | ------- | ----------- |
 | `./gradlew build` | Compila il progetto e esegue i test |
 | `./gradlew test` | Esegue solo i test unitari |
 | `./gradlew run --console=plain` | Avvia l'applicazione CLI |
 | `./gradlew clean` | Pulisce i file di build |
 | `./gradlew javadoc` | Genera la documentazione JavaDoc |
+
+*: *Su Windows, ometti `./` davanti al comando (es. `gradlew build`).*
 
 ### Primo Avvio
 
