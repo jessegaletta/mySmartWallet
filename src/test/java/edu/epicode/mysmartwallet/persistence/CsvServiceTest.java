@@ -133,7 +133,7 @@ class CsvServiceTest {
         testTransactions.add(new Transaction.Builder()
                 .withId(3)
                 .withAccountId(2)
-                .withType(TransactionType.TRANSFER)
+                .withType(TransactionType.TRANSFER_OUT)
                 .withDate(LocalDate.of(2024, 2, 1))
                 .withAmount(MoneyUtil.of("200.00"))
                 .withDescription("Trasferimento risparmio")
@@ -364,7 +364,7 @@ class CsvServiceTest {
         transactions.add(new Transaction.Builder()
                 .withId(3)
                 .withAccountId(1)
-                .withType(TransactionType.TRANSFER)
+                .withType(TransactionType.TRANSFER_OUT)
                 .withDate(LocalDate.now())
                 .withAmount(MoneyUtil.of("25.00"))
                 .withDescription("Trasferimento")
@@ -380,11 +380,11 @@ class CsvServiceTest {
                 .filter(t -> t.getType() == TransactionType.INCOME).count();
         long expenseCount = loaded.stream()
                 .filter(t -> t.getType() == TransactionType.EXPENSE).count();
-        long transferCount = loaded.stream()
-                .filter(t -> t.getType() == TransactionType.TRANSFER).count();
+        long transferOutCount = loaded.stream()
+                .filter(t -> t.getType() == TransactionType.TRANSFER_OUT).count();
 
         assertEquals(1, incomeCount);
         assertEquals(1, expenseCount);
-        assertEquals(1, transferCount);
+        assertEquals(1, transferOutCount);
     }
 }

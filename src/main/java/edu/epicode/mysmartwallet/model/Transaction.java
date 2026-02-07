@@ -310,8 +310,8 @@ public final class Transaction extends BaseEntity {
             if (type == null) {
                 throw new InvalidInputException("Il tipo di transazione è obbligatorio");
             }
-            if (amount == null || !MoneyUtil.isPositive(amount)) {
-                throw new InvalidInputException("L'importo deve essere positivo");
+            if (amount == null || amount == BigDecimal.ZERO) {
+                throw new InvalidInputException("L'importo deve essere diverso da zero");
             }
         }
     }

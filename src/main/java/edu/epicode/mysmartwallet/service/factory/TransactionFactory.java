@@ -24,7 +24,7 @@ import java.util.logging.Logger;
  * <ul>
  *   <li>Entrate (INCOME)</li>
  *   <li>Uscite (EXPENSE)</li>
- *   <li>Trasferimenti tra conti (coppia di TRANSFER)</li>
+ *   <li>Trasferimenti tra conti (coppia TRANSFER_OUT/TRANSFER_IN)</li>
  * </ul>
  * 
  *
@@ -142,27 +142,35 @@ public final class TransactionFactory {
     /**
      * Crea un trasferimento tra due conti.
      *
-     * Un trasferimento genera due transazioni di tipo TRANSFER:
+     * Un trasferimento genera due transazioni:
      * <ol>
-     *   <li>Una transazione di uscita sul conto sorgente</li>
-     *   <li>Una transazione di entrata sul conto destinazione</li>
+     *   <li>Una transazione TRANSFER_OUT sul conto sorgente</li>
+     *   <li>Una transazione TRANSFER_IN sul conto destinazione</li>
      * </ol>
-     * 
      *
-     * @param amount        l'importo del trasferimento
-     * @param description   la descrizione del trasferimento
-     * @param fromAccountId l'ID del conto sorgente
-     * @param toAccountId   l'ID del conto destinazione
-     * @param categoryId    l'ID della categoria
-     * @param date          la data del trasferimento
-     * @return lista contenente le due transazioni (uscita e entrata)
+     * Supporta la conversione valutaria: se toAmount e' diverso da fromAmount,
+     * i dati di conversione vengono registrati nella transazione di entrata.
+     *
+     * @param fromAmount         l'importo in uscita (nella valuta del conto sorgente)
+     * @param toAmount           l'importo in entrata (nella valuta del conto destinazione)
+     * @param description        la descrizione del trasferimento
+     * @param fromAccountId      l'ID del conto sorgente
+     * @param toAccountId        l'ID del conto destinazione
+     * @param categoryId         l'ID della categoria
+     * @param date               la data del trasferimento
+     * @param originalAmount     l'importo originale per conversione (null se stessa valuta)
+     * @param originalCurrencyId l'ID della valuta originale (null se stessa valuta)
+     * @param exchangeRate       il tasso di cambio applicato (null se stessa valuta)
+     * @return lista contenente le due transazioni (TRANSFER_OUT e TRANSFER_IN)
      * @throws InvalidInputException se i parametri non sono validi
      */
-    public static List<Transaction> createTransfer(BigDecimal amount, String description,
-            int fromAccountId, int toAccountId, int categoryId, LocalDate date)
+    public static List<Transaction> createTransfer(BigDecimal fromAmount, BigDecimal toAmount,
+            String description, int fromAccountId, int toAccountId, int categoryId, LocalDate date,
+            BigDecimal originalAmount, Integer originalCurrencyId, BigDecimal exchangeRate)
             throws InvalidInputException {
 
-        InputValidator.validatePositiveAmount(amount);
+        InputValidator.validatePositiveAmount(fromAmount);
+        InputValidator.validatePositiveAmount(toAmount);
         InputValidator.validateNotEmpty(description, "descrizione");
         InputValidator.validateId(fromAccountId);
         InputValidator.validateId(toAccountId);
@@ -176,32 +184,43 @@ public final class TransactionFactory {
 
         List<Transaction> transfers = new ArrayList<>();
 
-        // Transazione di uscita dal conto sorgente
+        // Transazione di uscita dal conto sorgente (TRANSFER_OUT)
         Transaction outgoing = new Transaction.Builder()
                 .withId(idCounter.getAndIncrement())
-                .withAmount(amount)
+                .withAmount(fromAmount)
                 .withDescription(description + " (trasferimento in uscita)")
-                .withType(TransactionType.TRANSFER)
+                .withType(TransactionType.TRANSFER_OUT)
                 .withCategoryId(categoryId)
                 .withAccountId(fromAccountId)
                 .withDate(date)
                 .build();
         transfers.add(outgoing);
 
-        // Transazione di entrata nel conto destinazione
-        Transaction incoming = new Transaction.Builder()
+        // Transazione di entrata nel conto destinazione (TRANSFER_IN)
+        Transaction.Builder incomingBuilder = new Transaction.Builder()
                 .withId(idCounter.getAndIncrement())
-                .withAmount(amount)
+                .withAmount(toAmount)
                 .withDescription(description + " (trasferimento in entrata)")
-                .withType(TransactionType.TRANSFER)
+                .withType(TransactionType.TRANSFER_IN)
                 .withCategoryId(categoryId)
                 .withAccountId(toAccountId)
-                .withDate(date)
-                .build();
-        transfers.add(incoming);
+                .withDate(date);
 
-        logger.info("Creato trasferimento: " + amount + " da conto " + fromAccountId +
-                " a conto " + toAccountId);
+        // Aggiungi dati di conversione se presenti
+        if (originalAmount != null) {
+            incomingBuilder.withOriginalAmount(originalAmount);
+        }
+        if (originalCurrencyId != null) {
+            incomingBuilder.withOriginalCurrencyId(originalCurrencyId);
+        }
+        if (exchangeRate != null) {
+            incomingBuilder.withExchangeRate(exchangeRate);
+        }
+
+        transfers.add(incomingBuilder.build());
+
+        logger.info("Creato trasferimento: " + fromAmount + " da conto " + fromAccountId +
+                " -> " + toAmount + " a conto " + toAccountId);
 
         return transfers;
     }
@@ -220,7 +239,6 @@ public final class TransactionFactory {
      */
     private static void validateInputs(BigDecimal amount, String description,
             int categoryId, int accountId, LocalDate date) throws InvalidInputException {
-        InputValidator.validatePositiveAmount(amount);
         InputValidator.validateNotEmpty(description, "descrizione");
         InputValidator.validateId(categoryId);
         InputValidator.validateId(accountId);

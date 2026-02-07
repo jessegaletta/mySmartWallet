@@ -223,34 +223,27 @@ public class WalletService {
             finalToAmount = fromAmount;
         }
 
-        // Transazione di uscita sul conto sorgente (TRANSFER)
+        // Crea entrambe le transazioni tramite la Factory
         List<Transaction> transfers = TransactionFactory.createTransfer(
-                fromAmount, description, fromAccountId, toAccountId, categoryId, date);
+                fromAmount,
+                finalToAmount,
+                description,
+                fromAccountId,
+                toAccountId,
+                categoryId,
+                date,
+                differentCurrencies ? fromAmount : null,
+                differentCurrencies ? fromCurrency.getId() : null,
+                differentCurrencies ? exchangeRate : null);
 
+        // Transazione di uscita sul conto sorgente (TRANSFER_OUT)
         Transaction outgoing = transfers.get(0);
         fromAccount.addTransaction(outgoing);
         transactionRepository.save(outgoing);
         accountRepository.save(fromAccount);
 
-        // Transazione di entrata sul conto destinazione
-        int inId = transactionRepository.generateNextId();
-        Transaction.Builder incomingBuilder = new Transaction.Builder()
-                .withId(inId)
-                .withAccountId(toAccountId)
-                .withType(TransactionType.INCOME)
-                .withDate(date)
-                .withAmount(finalToAmount)
-                .withDescription(description + " (trasferimento da " + fromAccount.getName() + ")")
-                .withCategoryId(categoryId);
-
-        // Se valute diverse, registra info sulla conversione
-        if (differentCurrencies) {
-            incomingBuilder.withOriginalAmount(fromAmount);
-            incomingBuilder.withOriginalCurrencyId(fromCurrency.getId());
-            incomingBuilder.withExchangeRate(exchangeRate);
-        }
-
-        Transaction incoming = incomingBuilder.build();
+        // Transazione di entrata sul conto destinazione (TRANSFER_IN)
+        Transaction incoming = transfers.get(1);
         toAccount.addTransaction(incoming);
         transactionRepository.save(incoming);
         accountRepository.save(toAccount);
@@ -427,7 +420,8 @@ public class WalletService {
         BigDecimal currentBalance = account.getBalance();
         BigDecimal balanceChange;
 
-        if (transaction.getType() == TransactionType.INCOME) {
+        TransactionType type = transaction.getType();
+        if (type == TransactionType.INCOME || type == TransactionType.TRANSFER_IN) {
             balanceChange = transaction.getAmount().negate();
         } else {
             balanceChange = transaction.getAmount();

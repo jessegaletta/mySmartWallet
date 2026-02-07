@@ -306,7 +306,7 @@ public class Main {
         }
         Currency selectedCurrency = currencies.get(currencyChoice - 1);
 
-        BigDecimal initialBalance = readAmount("Saldo iniziale (" + selectedCurrency.getSymbol() + ")");
+        BigDecimal initialBalance = readAmount("Saldo iniziale (" + selectedCurrency.getSymbol() + ")", false);
 
         Account newAccount = walletService.createAccount(name, selectedCurrency.getCode(), initialBalance);
         System.out.printf("%nConto '%s' creato con successo! (ID: %d)%n", newAccount.getName(), newAccount.getId());
@@ -567,7 +567,7 @@ public class Main {
         // Importo nella valuta selezionata
         String currencyLabel = selectedCurrency != null ?
                 " (" + selectedCurrency.getCode() + ")" : "";
-        BigDecimal inputAmount = readAmount("Importo" + currencyLabel);
+        BigDecimal inputAmount = readAmount("Importo" + currencyLabel, false);
 
         String description = readString("Descrizione");
 
@@ -790,7 +790,7 @@ public class Main {
         String fromSymbol = fromCurrency != null ? fromCurrency.getCode() : "";
 
         // Chiedi importo nella valuta del conto origine
-        BigDecimal fromAmount = readAmount("Importo (" + fromSymbol + ")");
+        BigDecimal fromAmount = readAmount("Importo (" + fromSymbol + ")", true);
 
         // Verifica disponibilità
         if (MoneyUtil.isGreaterThan(fromAmount, fromAccount.getBalance())) {
@@ -828,7 +828,7 @@ public class Main {
 
             System.out.println("\nI conti hanno valute diverse (" +
                     fromSymbol + " -> " + toSymbol + ").");
-            toAmount = readAmount("Importo da accreditare (" + toSymbol + ")");
+            toAmount = readAmount("Importo da accreditare (" + toSymbol + ")",true);
 
             // Mostra il tasso di cambio calcolato
             BigDecimal rate = MoneyUtil.divideRates(toAmount, fromAmount);
@@ -837,9 +837,10 @@ public class Main {
 
         String description = readString("Descrizione");
         int transferCategoryId = 3;
+        LocalDate date = readDate("Data (yyyy-MM-dd, invio per oggi)");
 
         walletService.transfer(fromId, toId, fromAmount, toAmount, description,
-                transferCategoryId, LocalDate.now());
+                transferCategoryId, date);
         System.out.println("\nTrasferimento completato con successo!");
     }
 
@@ -1252,7 +1253,7 @@ public class Main {
             return;
         }
 
-        BigDecimal rate = readAmount("Nuovo tasso rispetto EUR");
+        BigDecimal rate = readAmount("Nuovo tasso rispetto EUR", true);
         LocalDate date = readDate("Data tasso (yyyy-MM-dd, invio per oggi)");
 
         currencyManager.updateRate(currencyCode, date, rate);
@@ -1265,7 +1266,7 @@ public class Main {
     private static void addCurrency() {
         System.out.println("\nNuova valuta:");
 
-        String code = readString("Codice ISO (es: CHF)").toUpperCase();
+        String code = readString("Codice ISO (es: USD)").toUpperCase();
 
         // Verifica che il codice non esista già
         try {
@@ -1276,9 +1277,9 @@ public class Main {
             // OK, il codice non esiste
         }
 
-        String name = readString("Nome (es: Franco Svizzero)");
-        String symbol = readString("Simbolo (es: CHF)");
-        BigDecimal rate = readAmount("Tasso rispetto EUR");
+        String name = readString("Nome (es: Dollaro U.S.)");
+        String symbol = readString("Simbolo (es: $)");
+        BigDecimal rate = readAmount("Tasso rispetto EUR", true);
 
         int newId = currencyManager.generateNextId();
         Currency newCurrency = new Currency(newId, code, name, symbol);
@@ -1388,14 +1389,18 @@ public class Main {
 
     /**
      * Legge un importo BigDecimal dall'input con validazione.
+     * 
+     * @param mustBePositive controlla che l'importo sia positivo
      */
-    private static BigDecimal readAmount(String prompt) {
+    private static BigDecimal readAmount(String prompt, boolean mustBePositive) {
         while (true) {
             System.out.print(prompt + ": ");
             String input = scanner.nextLine().trim();
             try {
                 BigDecimal amount = InputValidator.parseAmount(input);
-                InputValidator.validatePositiveAmount(amount);
+                if(mustBePositive){
+                    InputValidator.validatePositiveAmount(amount);
+                }
                 return amount;
             } catch (InvalidInputException e) {
                 System.out.println("Inserisci un importo valido (es: 100.50).");

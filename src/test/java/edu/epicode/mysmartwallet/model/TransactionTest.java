@@ -43,24 +43,6 @@ class TransactionTest {
     }
 
     @Test
-    @DisplayName("Builder lancia eccezione per amount negativo")
-    void testBuilderThrowsExceptionForNegativeAmount() {
-        BigDecimal negativeAmount = new BigDecimal("-50.00");
-
-        InvalidInputException exception = assertThrows(
-                InvalidInputException.class,
-                () -> new Transaction.Builder()
-                        .withId(1)
-                        .withDate(LocalDate.now())
-                        .withAmount(negativeAmount)
-                        .withType(TransactionType.EXPENSE)
-                        .build()
-        );
-
-        assertTrue(exception.getMessage().contains("positivo"));
-    }
-
-    @Test
     @DisplayName("Builder lancia eccezione per amount zero")
     void testBuilderThrowsExceptionForZeroAmount() {
         assertThrows(
@@ -128,7 +110,7 @@ class TransactionTest {
                 .withId(5)
                 .withDate(originalDate)
                 .withAmount(originalAmount)
-                .withType(TransactionType.TRANSFER)
+                .withType(TransactionType.TRANSFER_OUT)
                 .withDescription("Trasferimento test")
                 .withCategoryId(20)
                 .withAccountId(2)

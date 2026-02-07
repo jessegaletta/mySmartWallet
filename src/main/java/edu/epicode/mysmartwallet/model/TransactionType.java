@@ -19,9 +19,14 @@ public enum TransactionType {
     EXPENSE("Uscita"),
 
     /**
-     * Trasferimento: movimento tra conti.
+     * Trasferimento in uscita: denaro trasferito dal conto.
      */
-    TRANSFER("Trasferimento");
+    TRANSFER_OUT("Trasferimento in uscita"),
+
+    /**
+     * Trasferimento in entrata: denaro ricevuto da un altro conto.
+     */
+    TRANSFER_IN("Trasferimento in entrata");
 
     private final String description;
 

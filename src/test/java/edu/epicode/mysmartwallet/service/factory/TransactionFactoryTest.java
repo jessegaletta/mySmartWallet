@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test per la classe TransactionFactory (Factory Pattern).
- * Verifica la creazione di transazioni INCOME, EXPENSE e TRANSFER.
+ * Verifica la creazione di transazioni INCOME, EXPENSE, TRANSFER_OUT e TRANSFER_IN.
  *
  * @author Jesse Galetta
  * @version 1.0
@@ -72,28 +72,30 @@ class TransactionFactoryTest {
     }
 
     @Test
-    @DisplayName("createTransfer() crea coppia di transazioni TRANSFER")
+    @DisplayName("createTransfer() crea coppia di transazioni TRANSFER_OUT/TRANSFER_IN")
     void testCreateTransfer() throws InvalidInputException {
         List<Transaction> transfers = TransactionFactory.createTransfer(
-                new BigDecimal("200.00"),
+                new BigDecimal("200.00"),  // fromAmount
+                new BigDecimal("200.00"),  // toAmount
                 "Trasferimento",
                 1,  // fromAccountId
                 2,  // toAccountId
                 5,  // categoryId
-                testDate
+                testDate,
+                null, null, null  // no conversione
         );
 
         assertEquals(2, transfers.size());
 
-        // Prima transazione: uscita
+        // Prima transazione: uscita (TRANSFER_OUT)
         Transaction outgoing = transfers.get(0);
-        assertEquals(TransactionType.TRANSFER, outgoing.getType());
+        assertEquals(TransactionType.TRANSFER_OUT, outgoing.getType());
         assertEquals(1, outgoing.getAccountId());
         assertTrue(outgoing.getDescription().contains("uscita"));
 
-        // Seconda transazione: entrata
+        // Seconda transazione: entrata (TRANSFER_IN)
         Transaction incoming = transfers.get(1);
-        assertEquals(TransactionType.TRANSFER, incoming.getType());
+        assertEquals(TransactionType.TRANSFER_IN, incoming.getType());
         assertEquals(2, incoming.getAccountId());
         assertTrue(incoming.getDescription().contains("entrata"));
     }
@@ -105,24 +107,14 @@ class TransactionFactoryTest {
                 InvalidInputException.class,
                 () -> TransactionFactory.createTransfer(
                         new BigDecimal("100.00"),
+                        new BigDecimal("100.00"),
                         "Trasferimento",
-                        1, 1, 5, testDate
+                        1, 1, 5, testDate,
+                        null, null, null
                 )
         );
 
         assertTrue(exception.getMessage().contains("uguali"));
-    }
-
-    @Test
-    @DisplayName("Factory lancia eccezione per importo negativo")
-    void testInvalidAmount() {
-        assertThrows(InvalidInputException.class,
-                () -> TransactionFactory.createIncome(
-                        new BigDecimal("-50.00"),
-                        "Test",
-                        1, 1, testDate,
-                        null, null, null
-                ));
     }
 
     @Test

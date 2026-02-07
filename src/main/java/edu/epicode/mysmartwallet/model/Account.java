@@ -129,10 +129,11 @@ public class Account extends BaseEntity {
         for (Transaction t : transactions) {
             switch (t.getType()) {
                 case INCOME:
+                case TRANSFER_IN:
                     balance = MoneyUtil.add(balance, t.getAmount());
                     break;
                 case EXPENSE:
-                case TRANSFER:
+                case TRANSFER_OUT:
                     balance = MoneyUtil.subtract(balance, t.getAmount());
                     break;
             }
